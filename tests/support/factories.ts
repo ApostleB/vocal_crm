@@ -1,4 +1,5 @@
 import type { Customer, Lesson, Reservation, StatusLog } from '@shared/types'
+import type { CustomerAggregate } from '@shared/domain/home'
 
 const TS = '2026-09-01T00:00:00.000Z'
 
@@ -61,6 +62,20 @@ export function makeStatusLog(over: Partial<StatusLog> = {}): StatusLog {
     toStatus: 'active',
     reason: null,
     createdAt: TS,
+    ...over
+  }
+}
+
+export function makeAggregate(over: Partial<CustomerAggregate> & { customer?: Customer } = {}): CustomerAggregate {
+  return {
+    customer: makeCustomer(),
+    goalsDone: 0,
+    goalsTotal: 0,
+    lessonCount: 0,
+    lastLessonDate: null,
+    deducted: 0,
+    passRecords: 0,
+    passTotal: 0,
     ...over
   }
 }
