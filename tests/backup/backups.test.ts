@@ -16,6 +16,13 @@ import { createCustomer } from '@main/store/customers'
 import { customerInput, NOW } from '../support/db'
 import { tempDir } from '../support/tempDir'
 
+// node:fs 는 내장 모듈이라 그대로는 spyOn 이 안 된다. 실제 구현을 그대로 감싼 객체로 바꿔 두면
+// 개별 테스트에서 함수 하나만 골라 바꿔치기할 수 있다
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return { ...actual }
+})
+
 const at = (h: number, m: number, s = 0): Date => new Date(2026, 8, 28, h, m, s)
 
 describe('backupFileName / listBackups', () => {
@@ -62,6 +69,25 @@ describe('createBackup / pruneBackups', () => {
     )
     expect(listBackups(backups)).toEqual([])
     expect(readdirSync(backups)).toEqual([])
+  })
+
+  it('임시 파일을 정식 이름으로 옮기지 못하면 tmp 를 지우고 BACKUP_FAILED 를 던진다 (tmp 정리 분기를 실제로 탄다)', async () => {
+    const dir = tempDir()
+    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    const backups = join(dir, 'backups')
+    const fs = await import('node:fs')
+    const rename = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
+      throw Object.assign(new Error('입출력 오류'), { code: 'EIO' })
+    })
+    try {
+      await expect(createBackup(db, backups, 'manual', at(9, 0))).rejects.toThrow(
+        '백업을 만들지 못했습니다. 디스크 공간을 확인해 주세요.'
+      )
+      expect(listBackups(backups)).toEqual([])
+      expect(readdirSync(backups).some((f) => f.endsWith('.tmp'))).toBe(false)
+    } finally {
+      rename.mockRestore()
+    }
   })
 
   it('최근 30개만 남긴다', () => {

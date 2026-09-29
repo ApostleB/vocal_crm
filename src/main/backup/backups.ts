@@ -61,11 +61,12 @@ export async function createBackup(db: DB, dir: string, kind: BackupKind, now: D
   const tmpPath = join(dir, `${fileName}.tmp`)
   try {
     await db.backup(tmpPath)
+    // createBackup 이 이미 async 이므로, tmp 를 정식 이름으로 옮기는 rename 도 잠깐의 파일 잠금(백신 등)에 대비해 재시도한다
+    await renameWithRetry(tmpPath, join(dir, fileName))
   } catch (err) {
     rmSync(tmpPath, { force: true })
     throw new AppError('BACKUP_FAILED', '백업을 만들지 못했습니다. 디스크 공간을 확인해 주세요.', { cause: err })
   }
-  renameSync(tmpPath, join(dir, fileName))
   pruneBackups(dir)
   const info = listBackups(dir).find((b) => b.fileName === fileName)
   if (!info) throw new AppError('BACKUP_FAILED', '백업을 만들지 못했습니다.')
