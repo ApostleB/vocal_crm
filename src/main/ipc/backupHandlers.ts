@@ -49,6 +49,19 @@ export function createBackupHandlers(
     }
   }
 
+  /** 복원할 내용을 "<DB 파일>.restore-tmp" 에 쓰고 검사한다. 검사에 실패하면 지우고 오류를 다시 던진다 */
+  const prepareRestore = (e: AppEnv, data: Buffer): string => {
+    const source = `${e.dbPath}.restore-tmp`
+    writeFileSync(source, data)
+    try {
+      validateBackupFile(source)
+    } catch (err) {
+      unlinkSync(source)
+      throw err
+    }
+    return source
+  }
+
   return {
     'app.info': () => {
       const e = requireEnv()
@@ -72,15 +85,7 @@ export function createBackupHandlers(
     'backup.restore': async (fileName) => {
       const e = requireEnv()
       if (!listBackups(e.backupDir).some((b) => b.fileName === fileName)) throw notFound('백업을 찾을 수 없습니다.')
-      const source = `${e.dbPath}.restore-tmp`
-      writeFileSync(source, readFileSync(join(e.backupDir, fileName)))
-      try {
-        validateBackupFile(source)
-      } catch (err) {
-        unlinkSync(source)
-        throw err
-      }
-      await restoreFrom(e, source)
+      await restoreFrom(e, prepareRestore(e, readFileSync(join(e.backupDir, fileName))))
     },
 
     'backup.exportFile': async () => {
@@ -105,15 +110,7 @@ export function createBackupHandlers(
       const e = requireEnv()
       const path = await files.chooseOpenPath(BACKUP_FILTERS)
       if (!path) return { restored: false }
-      const source = `${e.dbPath}.restore-tmp`
-      writeFileSync(source, await files.readFile(path))
-      try {
-        validateBackupFile(source)
-      } catch (err) {
-        unlinkSync(source)
-        throw err
-      }
-      await restoreFrom(e, source)
+      await restoreFrom(e, prepareRestore(e, await files.readFile(path)))
       return { restored: true }
     }
   }
