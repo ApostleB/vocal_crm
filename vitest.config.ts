@@ -2,6 +2,8 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
+process.env.TZ = 'Asia/Seoul'
+
 export default defineConfig({
   resolve: {
     alias: {
