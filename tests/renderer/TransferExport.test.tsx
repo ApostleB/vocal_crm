@@ -23,7 +23,7 @@ describe('가져오기·내보내기 — 내보내기', () => {
     const invoke = mockApi({
       'customers.list': () => customers,
       'settings.get': () => ({ branchName: '강남점', lessonMinutes: 60 }),
-      'transfer.exportVcrm': () => ({ saved: true, count: 2, moved: 2 })
+      'transfer.exportVcrm': () => ({ saved: true, count: 2, moved: 2, canceledReservations: 0 })
     })
     renderWithProviders(<TransferPage />)
     await user.click(screen.getByRole('button', { name: '고객 선택' }))

@@ -60,7 +60,10 @@ export interface ApiSpec {
   'reservations.save': { args: [input: ReservationInput]; result: Reservation }
   'reservations.cancel': { args: [id: string]; result: void }
 
-  'transfer.exportVcrm': { args: [request: ExportVcrmRequest]; result: SaveResult & { count: number; moved: number } }
+  'transfer.exportVcrm': {
+    args: [request: ExportVcrmRequest]
+    result: SaveResult & { count: number; moved: number; canceledReservations: number }
+  }
   'transfer.openVcrm': { args: []; result: ImportPreview | null }
   'transfer.applyVcrm': { args: [token: string, decisions: ImportDecision[]]; result: ImportResult }
 

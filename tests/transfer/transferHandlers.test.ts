@@ -20,7 +20,7 @@ describe('transfer.exportVcrm', () => {
     const { db, files, h } = setup()
     const id = seedCustomer(db)
     const r = await h['transfer.exportVcrm']({ customerIds: [id], targetBranch: '홍대점', markMoved: true })
-    expect(r).toEqual({ saved: true, count: 1, moved: 1 })
+    expect(r).toEqual({ saved: true, count: 1, moved: 1, canceledReservations: 0 })
     expect(files.lastDefaultName).toBe('김민지_강남점_2026-09-28.vcrm')
     const file = parseVcrm((files.store.get('/out/file') as Buffer).toString('utf-8'))
     expect(file).toMatchObject({ sourceBranch: '강남점', targetBranch: '홍대점' })
@@ -34,7 +34,8 @@ describe('transfer.exportVcrm', () => {
     expect(await h['transfer.exportVcrm']({ customerIds: [id], targetBranch: null, markMoved: true })).toEqual({
       saved: false,
       count: 0,
-      moved: 0
+      moved: 0,
+      canceledReservations: 0
     })
     expect(getCustomer(db, id)?.status).toBe('active')
   })

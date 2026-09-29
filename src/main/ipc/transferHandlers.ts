@@ -43,10 +43,12 @@ export function createTransferHandlers(
       const file = buildVcrm(db, customerIds, { sourceBranch: branch(), targetBranch }, clock())
       const names = file.customers.map((e) => e.customer.name)
       const path = await files.chooseSavePath(vcrmFileName(names, branch(), today()), VCRM_FILTERS)
-      if (!path) return { saved: false, count: 0, moved: 0 }
+      if (!path) return { saved: false, count: 0, moved: 0, canceledReservations: 0 }
       await files.writeFile(path, serializeVcrm(file))
-      const moved = move ? markMoved(db, customerIds, targetBranch, today(), clock()) : 0
-      return { saved: true, count: customerIds.length, moved }
+      const { moved, canceledReservations } = move
+        ? markMoved(db, customerIds, targetBranch, today(), clock())
+        : { moved: 0, canceledReservations: 0 }
+      return { saved: true, count: customerIds.length, moved, canceledReservations }
     },
 
     'transfer.openVcrm': async () => {

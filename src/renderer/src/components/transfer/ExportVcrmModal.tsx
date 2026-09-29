@@ -19,7 +19,7 @@ export function ExportVcrmModal({ customers, onClose }: { customers: CustomerSum
   )
 
   const submit = async (): Promise<void> => {
-    let result: { saved: boolean; count: number; moved: number }
+    let result: { saved: boolean; count: number; moved: number; canceledReservations: number }
     try {
       result = await exportVcrm.mutateAsync([
         { customerIds: customers.map((c) => c.id), targetBranch: targetBranch.trim() || null, markMoved }
@@ -29,7 +29,8 @@ export function ExportVcrmModal({ customers, onClose }: { customers: CustomerSum
     }
     if (!result.saved) return // 저장 창에서 취소 — 창은 그대로 둔다
     const moved = result.moved > 0 ? ` ${result.moved}명을 타지점 이동으로 바꿨습니다.` : ''
-    notifySuccess(`${result.count}명을 내보냈습니다.${moved}`)
+    const canceled = result.canceledReservations > 0 ? ` 예약 ${result.canceledReservations}건을 취소했습니다.` : ''
+    notifySuccess(`${result.count}명을 내보냈습니다.${moved}${canceled}`)
     onClose()
   }
 
@@ -56,7 +57,7 @@ export function ExportVcrmModal({ customers, onClose }: { customers: CustomerSum
         />
         <Checkbox
           label="내보낸 고객을 '타지점 이동' 상태로 바꾸기"
-          description="홈 목록에서 빠지고 이력에 남습니다. 데이터는 지우지 않습니다."
+          description="홈 목록에서 빠지고 이력에 남습니다. 잡혀 있는 예약은 취소됩니다. 데이터는 지우지 않습니다."
           checked={markMoved}
           onChange={(e) => setMarkMoved(e.currentTarget.checked)}
         />

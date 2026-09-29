@@ -80,27 +80,29 @@ export function buildVcrm(db: DB, customerIds: string[], meta: ExportMeta, now: 
   }
 }
 
-/** 내보낸 고객을 '타지점 이동' 으로 바꾼다. 이미 이동 상태인 고객은 건너뛴다. 바꾼 수를 돌려준다 */
+/** 내보낸 고객을 '타지점 이동' 으로 바꾼다. 이미 이동 상태인 고객은 건너뛴다. 바꾼 수와 취소된 예약 수를 돌려준다 */
 export function markMoved(
   db: DB,
   customerIds: string[],
   targetBranch: string | null,
   today: string,
   now: Date
-): number {
+): { moved: number; canceledReservations: number } {
   const target = targetBranch?.trim() || null
-  let changed = 0
+  let moved = 0
+  let canceledReservations = 0
   db.transaction(() => {
     for (const id of customerIds) {
       const customer = getCustomer(db, id)
       if (!customer || customer.status === 'moved') continue
-      changeStatus(
+      const result = changeStatus(
         db,
         { customerId: id, toStatus: 'moved', date: today, reason: target ? `${withEuro(target)} 이동` : null, pauseUntil: null },
         now
       )
-      changed++
+      canceledReservations += result.canceledReservations
+      moved++
     }
   })()
-  return changed
+  return { moved, canceledReservations }
 }

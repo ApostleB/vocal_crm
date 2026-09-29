@@ -62,7 +62,7 @@ describe('markMoved', () => {
     const r = saveReservation(db, { customerId: a, date: '2026-10-02', time: '13:00', note: null }, NOW)
     changeStatus(db, { customerId: b, toStatus: 'moved', date: TODAY, reason: null, pauseUntil: null }, NOW)
 
-    expect(markMoved(db, [a, b], '홍대점', TODAY, NOW)).toBe(1)
+    expect(markMoved(db, [a, b], '홍대점', TODAY, NOW)).toEqual({ moved: 1, canceledReservations: 1 })
     expect(getCustomer(db, a)?.status).toBe('moved')
     expect(listStatusLogs(db, a).at(-1)).toMatchObject({ toStatus: 'moved', reason: '홍대점으로 이동' })
     expect(getReservation(db, r.id)?.status).toBe('canceled')
