@@ -149,6 +149,25 @@ describe('applyImport — 기존 고객에 합치기', () => {
   })
 })
 
+describe('applyImport — 같은 날 재합치기', () => {
+  it('같은 날 같은 사유의 이력이 있어도 상태가 다르면 다시 수강중으로 바꾸고 이력을 남긴다', () => {
+    const src = seedSource()
+    const file = buildVcrm(src.db, [src.id], { sourceBranch: '강남점', targetBranch: null }, NOW)
+    const db = createTestDb()
+    applyImport(db, file, [{ incomingId: src.id, action: 'new' }], TODAY, NOW)
+    changeStatus(db, { customerId: src.id, toStatus: 'ended', date: TODAY, reason: null, pauseUntil: null }, NOW)
+
+    applyImport(db, file, [{ incomingId: src.id, action: 'merge', targetId: src.id }], TODAY, NOW)
+
+    expect(getCustomer(db, src.id)?.status).toBe('active')
+    expect(listStatusLogs(db, src.id).at(-1)).toMatchObject({
+      fromStatus: 'ended',
+      toStatus: 'active',
+      reason: '강남점에서 이동해 옴'
+    })
+  })
+})
+
 describe('applyImport — 검증', () => {
   it('처리 방법이 빠진 고객이 있으면 아무것도 바꾸지 않고 거부, 건너뛰기는 센다', () => {
     const db = createTestDb()

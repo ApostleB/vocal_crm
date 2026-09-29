@@ -61,12 +61,15 @@ function addAliases(db: DB, customerId: string, ids: string[]): void {
   for (const id of ids) if (id !== customerId) stmt.run(id, customerId)
 }
 
-/** 이 PC 에서 이 고객에게 같은 날 같은 사유의 이동 이력이 이미 있으면 다시 쓰지 않는다 (같은 파일 재가져오기) */
+/**
+ * 이 PC 에서 이 고객에게 같은 날 같은 사유의 이동 이력이 이미 있고, 상태도 이미 수강중이면 다시 쓰지 않는다
+ * (같은 파일 재가져오기). 상태가 다르면 실제로 바뀌는 것이므로 이력을 남긴다
+ */
 function logMovedIn(db: DB, customer: Customer, reason: string, today: string, now: Date): void {
   const dup = db
     .prepare("SELECT 1 FROM status_logs WHERE customer_id = ? AND reason = ? AND date = ? AND to_status = 'active'")
     .get(customer.id, reason, today)
-  if (dup) return
+  if (dup && customer.status === 'active') return
   insertStatusLog(db, {
     id: newId(),
     customerId: customer.id,
