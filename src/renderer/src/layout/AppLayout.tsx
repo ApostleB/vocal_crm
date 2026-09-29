@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { AppShell, NavLink, Stack, Text, Title } from '@mantine/core'
 import { IconCalendarWeek, IconHome, IconSettings } from '@tabler/icons-react'
 import { Link, Outlet, useLocation } from 'react-router'
+import { useDayRollover } from '../lib/useDayRollover'
 
 interface Props {
   branchName: string
@@ -9,6 +10,8 @@ interface Props {
 
 export function AppLayout({ branchName }: Props): React.JSX.Element {
   const { pathname } = useLocation()
+  // 앱을 밤새 켜 둬도 자정이 지나면 홈 화면이 자동으로 갱신되게 한다
+  useDayRollover()
   // 화면을 옮기면 맨 위부터 보이게 한다
   useEffect(() => {
     window.scrollTo(0, 0)
