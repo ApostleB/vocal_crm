@@ -102,6 +102,25 @@ describe('openWithRecovery', () => {
     expect(u.log).toHaveBeenCalledTimes(1)
     r?.db.close()
   })
+
+  it('최신 백업이 깨졌으면 그다음 백업으로 복원하고, restore-tmp 를 남기지 않는다', async () => {
+    const { dir, dbPath, backupDir } = await setupWithBackup()
+    const db = openDatabase(dbPath)
+    createCustomer(db, customerInput({ name: '박서준' }), NOW)
+    await createBackup(db, backupDir, 'auto', new Date(2026, 8, 28, 9, 30))
+    db.close()
+    // 가장 최근(9:30) 백업을 깨뜨린다 - 그다음(9:00) 백업으로 복원해야 한다
+    writeFileSync(join(backupDir, 'vocal_crm_20260928_093000_auto.db'), 'broken')
+    writeFileSync(dbPath, 'broken')
+    const u = ui(true)
+    const r = openWithRecovery(dbPath, backupDir, u, new Date(2026, 8, 28, 10, 0))
+    expect(u.askRestore).toHaveBeenCalledWith(expect.objectContaining({ fileName: 'vocal_crm_20260928_090000_auto.db' }))
+    expect(r?.restoredFrom).toBe('vocal_crm_20260928_090000_auto.db')
+    expect(r?.db.prepare('SELECT name FROM customers').pluck().all()).toEqual(['김민지'])
+    expect(existsSync(`${dbPath}.restore-tmp`)).toBe(false)
+    expect(readdirSync(dir)).toContain('vocal_crm.db.broken-20260928_100000')
+    r?.db.close()
+  })
 })
 
 describe('runDailyBackup', () => {

@@ -1,11 +1,11 @@
-import { existsSync, renameSync } from 'node:fs'
+import { copyFileSync, existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import type { BackupInfo } from '@shared/backupTypes'
 import { toDateString } from '@shared/domain/dates'
 import { AppError } from '@shared/result'
 import { checkIntegrity, openDatabase, type DB } from '../db/connection'
 import { getSetting, setSetting } from '../store/settings'
-import { createBackup, fileTimestamp, listBackups, replaceDatabaseFile } from './backups'
+import { createBackup, fileTimestamp, listBackups, validateBackupFile } from './backups'
 
 /** 시작할 때 사용자에게 묻거나 알리는 창 (Main 은 Electron 대화상자, 테스트는 가짜) */
 export interface RecoveryUi {
@@ -40,6 +40,19 @@ export interface OpenResult {
   restoredFrom: string | null
 }
 
+/** 최신순으로 검사해 처음 통과하는 백업을 고른다. 하나도 없으면 null (최신 백업이 깨졌을 수도 있어서) */
+function pickValidBackup(backupDir: string): BackupInfo | null {
+  for (const b of listBackups(backupDir)) {
+    try {
+      validateBackupFile(join(backupDir, b.fileName))
+      return b
+    } catch {
+      continue
+    }
+  }
+  return null
+}
+
 /**
  * DB 를 열고 무결성을 검사한다 (설계 8장).
  * - 더 새 버전 앱의 DB 면 안내하고 null (앱 종료)
@@ -65,15 +78,30 @@ export function openWithRecovery(dbPath: string, backupDir: string, ui: Recovery
       )
       return null
     }
-    const latest = listBackups(backupDir)[0]
-    if (!latest) {
+    const chosen = pickValidBackup(backupDir)
+    if (!chosen) {
       ui.fatal('데이터 파일을 열 수 없습니다', '데이터 파일에 문제가 있고 백업도 없습니다. 데이터 폴더를 확인해 주세요.')
       return null
     }
-    if (!ui.askRestore(latest)) return null
-    if (existsSync(dbPath)) renameSync(dbPath, `${dbPath}.broken-${fileTimestamp(now)}`)
-    replaceDatabaseFile(dbPath, join(backupDir, latest.fileName))
-    return { db: openDatabase(dbPath), restoredFrom: latest.fileName }
+    if (!ui.askRestore(chosen)) return null
+    // 원본을 먼저 옮기고 나서 복사하면, 복사가 실패했을 때 DB 가 아예 없는 상태가 된다.
+    // 그래서 백업을 tmp 에 미리 복사해 둔 뒤에만 원본을 옆으로 옮기고, 마지막에 tmp 를 rename 한다
+    const tmp = `${dbPath}.restore-tmp`
+    copyFileSync(join(backupDir, chosen.fileName), tmp)
+    if (existsSync(dbPath)) {
+      const broken = `${dbPath}.broken-${fileTimestamp(now)}`
+      renameSync(dbPath, broken)
+      const journal = `${dbPath}-journal`
+      if (existsSync(journal)) renameSync(journal, `${broken}-journal`)
+    }
+    renameSync(tmp, dbPath)
+    const db = openDatabase(dbPath)
+    if (!checkIntegrity(db)) {
+      db.close()
+      ui.fatal('데이터 파일을 열 수 없습니다', '복원한 백업도 손상되어 있습니다. 데이터 폴더를 확인해 주세요.')
+      return null
+    }
+    return { db, restoredFrom: chosen.fileName }
   }
 }
 
