@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { vi, type Mock } from 'vitest'
 import type { Channel } from '@shared/api'
+import { AppModalsProvider } from '@renderer/modals/AppModals'
 
 type Responses = Partial<Record<Channel, (...args: unknown[]) => unknown>>
 
@@ -34,7 +35,9 @@ export function renderWithProviders(ui: React.ReactNode, options: { route?: stri
       <DatesProvider settings={{ locale: 'ko', firstDayOfWeek: 1 }}>
         <QueryClientProvider client={queryClient}>
           <ModalsProvider>
-            <MemoryRouter initialEntries={[options.route ?? '/']}>{content}</MemoryRouter>
+            <MemoryRouter initialEntries={[options.route ?? '/']}>
+              <AppModalsProvider>{content}</AppModalsProvider>
+            </MemoryRouter>
           </ModalsProvider>
         </QueryClientProvider>
       </DatesProvider>

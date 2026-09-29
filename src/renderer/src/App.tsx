@@ -7,6 +7,7 @@ import { HashRouter, Route, Routes } from 'react-router'
 import { useSettings } from './api/hooks'
 import { AppLayout } from './layout/AppLayout'
 import { notifyError } from './lib/notify'
+import { AppModalsProvider } from './modals/AppModals'
 import { CustomerDetailPage } from './pages/CustomerDetailPage'
 import { HomePage } from './pages/HomePage'
 import { OnboardingPage } from './pages/OnboardingPage'
@@ -31,14 +32,16 @@ function Root(): React.JSX.Element {
   }
   if (!settings.data.branchName) return <OnboardingPage />
   return (
-    <Routes>
-      <Route element={<AppLayout branchName={settings.data.branchName} />}>
-        <Route index element={<HomePage />} />
-        <Route path="customers/:id" element={<CustomerDetailPage />} />
-        <Route path="schedule" element={<SchedulePage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-    </Routes>
+    <AppModalsProvider>
+      <Routes>
+        <Route element={<AppLayout branchName={settings.data.branchName} />}>
+          <Route index element={<HomePage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="schedule" element={<SchedulePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </AppModalsProvider>
   )
 }
 
