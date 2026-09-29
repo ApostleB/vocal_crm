@@ -2,7 +2,10 @@ import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { BACKUP_KIND_LABEL } from '@shared/backupTypes'
+import { AppError } from '@shared/result'
+import type { AppEnv } from './backup/env'
 import { openWithRecovery, runDailyBackup, type RecoveryUi } from './backup/startup'
+import { openDatabase } from './db/connection'
 import { createHandlers } from './ipc/handlers'
 import { registerIpc } from './ipc/register'
 import { initLogging, logError } from './logger'
@@ -86,8 +89,30 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(async () => {
     try {
       const userData = app.getPath('userData')
-      const backupDir = join(userData, 'backups')
-      const opened = openWithRecovery(join(userData, 'vocal_crm.db'), backupDir, recoveryUi, new Date())
+      const clock = (): Date => new Date()
+      const files = createElectronFileAccess(() => mainWindow)
+      const env: AppEnv = {
+        version: app.getVersion(),
+        dataDir: userData,
+        dbPath: join(userData, 'vocal_crm.db'),
+        backupDir: join(userData, 'backups'),
+        openPath: async (path) => {
+          if (await shell.openPath(path)) throw new AppError('OPEN_FAILED', '폴더를 열지 못했습니다.')
+        },
+        reload: () => {
+          try {
+            registerIpc(createHandlers(openDatabase(env.dbPath), clock, files, env), logError)
+          } catch (err) {
+            logError(err)
+            dialog.showErrorBox('VOCAL CRM', '복원한 데이터를 열지 못했습니다. 앱을 다시 실행해 주세요.')
+            app.exit(1)
+            return
+          }
+          mainWindow?.webContents.reload()
+        }
+      }
+      const backupDir = env.backupDir
+      const opened = openWithRecovery(env.dbPath, backupDir, recoveryUi, new Date())
       if (!opened) {
         app.quit()
         return
@@ -98,7 +123,7 @@ if (!app.requestSingleInstanceLock()) {
       } catch (err) {
         logError(err) // 자동 백업 실패로 앱을 막지는 않는다
       }
-      registerIpc(createHandlers(db, () => new Date(), createElectronFileAccess(() => mainWindow)), logError)
+      registerIpc(createHandlers(db, clock, files, env), logError)
       createWindow()
     } catch (err) {
       logError(err)

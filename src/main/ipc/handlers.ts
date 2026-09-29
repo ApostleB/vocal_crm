@@ -1,5 +1,7 @@
 import type { ArgsOf, Channel, ResultOf } from '@shared/api'
 import { toDateString } from '@shared/domain/dates'
+import { createBackup } from '../backup/backups'
+import type { AppEnv } from '../backup/env'
 import type { DB } from '../db/connection'
 import { createCustomer, deleteCustomer, setPinnedNote, updateCustomer } from '../store/customers'
 import { addGoal, deleteGoal, renameGoal, setGoalDone } from '../store/goals'
@@ -10,21 +12,30 @@ import { cancelReservation, saveReservation } from '../store/reservations'
 import { getSettings, updateSettings } from '../store/settings'
 import { changeStatus, countOpenReservations } from '../store/status'
 import { noFileAccess, type FileAccess } from '../transfer/files'
+import { createBackupHandlers } from './backupHandlers'
 import { createTransferHandlers } from './transferHandlers'
 
 export type Handlers = {
   [C in Channel]: (...args: ArgsOf<C>) => ResultOf<C> | Promise<ResultOf<C>>
 }
 
-/** 채널별 처리 함수. clock 은 테스트에서 시각을, files 는 파일 대화상자·읽기·쓰기를 바꿔 끼우기 위한 것 */
+/**
+ * 채널별 처리 함수. clock 은 테스트에서 시각을, files 는 파일 대화상자·읽기·쓰기를,
+ * env 는 백업·데이터 폴더를 바꿔 끼우기 위한 것 (env 가 없으면 가져오기 전 자동 백업도 하지 않는다)
+ */
 export function createHandlers(
   db: DB,
   clock: () => Date = () => new Date(),
-  files: FileAccess = noFileAccess
+  files: FileAccess = noFileAccess,
+  env: AppEnv | null = null
 ): Handlers {
   const today = (): string => toDateString(clock())
+  const backupBeforeImport = async (): Promise<void> => {
+    if (env) await createBackup(db, env.backupDir, 'before-import', clock())
+  }
   return {
-    ...createTransferHandlers(db, clock, files),
+    ...createTransferHandlers(db, clock, files, backupBeforeImport),
+    ...createBackupHandlers(db, clock, files, env),
     'settings.get': () => getSettings(db),
     'settings.update': (patch) => updateSettings(db, patch),
 

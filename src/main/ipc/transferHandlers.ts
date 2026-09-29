@@ -31,7 +31,9 @@ const expired = (): AppError =>
 export function createTransferHandlers(
   db: DB,
   clock: () => Date,
-  files: FileAccess
+  files: FileAccess,
+  /** 가져오기·명단 등록을 적용하기 직전에 부른다 (자동 백업) */
+  beforeApply: () => Promise<void> = async () => {}
 ): Pick<Handlers, TransferChannel> {
   const today = (): string => toDateString(clock())
   const branch = (): string => getSettings(db).branchName ?? ''
@@ -64,8 +66,9 @@ export function createTransferHandlers(
       }
     },
 
-    'transfer.applyVcrm': (token, decisions) => {
+    'transfer.applyVcrm': async (token, decisions) => {
       if (!pendingVcrm || pendingVcrm.token !== token) throw expired()
+      await beforeApply()
       const result = applyImport(db, pendingVcrm.file, decisions, today(), clock())
       pendingVcrm = null
       return result
@@ -94,8 +97,9 @@ export function createTransferHandlers(
       return { token: pendingRoster.token, rows }
     },
 
-    'excel.applyRoster': (token, rowNumbers) => {
+    'excel.applyRoster': async (token, rowNumbers) => {
       if (!pendingRoster || pendingRoster.token !== token) throw expired()
+      await beforeApply()
       const result = applyRoster(db, pendingRoster.rows, rowNumbers, clock())
       pendingRoster = null
       return result

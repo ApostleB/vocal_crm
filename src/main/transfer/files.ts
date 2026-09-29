@@ -17,6 +17,7 @@ export interface FileAccess {
 
 export const VCRM_FILTERS: FileFilter[] = [{ name: 'VOCAL CRM 고객 파일', extensions: ['vcrm'] }]
 export const EXCEL_FILTERS: FileFilter[] = [{ name: '엑셀 파일', extensions: ['xlsx'] }]
+export const BACKUP_FILTERS: FileFilter[] = [{ name: 'VOCAL CRM 백업 파일', extensions: ['vcrmbak'] }]
 
 const unavailable = (): never => {
   throw new AppError('NO_FILE_ACCESS', '파일을 열거나 저장할 수 없습니다.')

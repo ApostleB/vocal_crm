@@ -15,6 +15,7 @@ import type {
   Settings,
   StatusChangeInput
 } from './types'
+import type { AppInfo, BackupInfo, BackupStatus } from './backupTypes'
 import type { ImportDecision, ImportPreview, ImportResult, RosterPreview } from './transferTypes'
 
 export interface ExportVcrmRequest {
@@ -71,6 +72,17 @@ export interface ApiSpec {
   'excel.saveRosterTemplate': { args: []; result: SaveResult }
   'excel.openRoster': { args: []; result: RosterPreview | null }
   'excel.applyRoster': { args: [token: string, rowNumbers: number[]]; result: { added: number } }
+
+  'app.info': { args: []; result: AppInfo }
+  'app.openDataFolder': { args: []; result: void }
+  'backup.status': { args: []; result: BackupStatus }
+  'backup.list': { args: []; result: BackupInfo[] }
+  'backup.create': { args: []; result: BackupInfo }
+  /** 백업으로 되돌린 뒤 화면을 새로 불러온다 */
+  'backup.restore': { args: [fileName: string]; result: void }
+  'backup.exportFile': { args: []; result: SaveResult }
+  /** 고른 백업 파일로 되돌린 뒤 화면을 새로 불러온다. 창에서 취소하면 restored: false */
+  'backup.importFile': { args: []; result: { restored: boolean } }
 }
 
 export type Channel = keyof ApiSpec
@@ -107,7 +119,15 @@ const CHANNEL_MAP: Record<Channel, true> = {
   'excel.exportCustomers': true,
   'excel.saveRosterTemplate': true,
   'excel.openRoster': true,
-  'excel.applyRoster': true
+  'excel.applyRoster': true,
+  'app.info': true,
+  'app.openDataFolder': true,
+  'backup.status': true,
+  'backup.list': true,
+  'backup.create': true,
+  'backup.restore': true,
+  'backup.exportFile': true,
+  'backup.importFile': true
 }
 
 export const CHANNELS = Object.keys(CHANNEL_MAP) as Channel[]
