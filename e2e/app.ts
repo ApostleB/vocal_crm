@@ -50,7 +50,8 @@ export const test = base.extend<{ userDataDir: string; app: ElectronApplication;
   userDataDir: async ({}, use) => {
     const dir = mkdtempSync(join(tmpdir(), 'vocal-crm-e2e-'))
     await use(dir)
-    rmSync(dir, { recursive: true, force: true })
+    // Windows 는 앱이 막 종료된 직후 파일을 잠깐 잡고 있을 수 있어 몇 번 다시 시도한다
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
   },
   app: async ({ userDataDir }, use) => {
     const { app } = await launchApp(userDataDir)

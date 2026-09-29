@@ -11,7 +11,7 @@ import { updateSettings } from '@main/store/settings'
 import { serializeVcrm } from '@shared/vcrm'
 import { customerInput, NOW } from '../support/db'
 import { memoryFiles } from '../support/files'
-import { tempDir } from '../support/tempDir'
+import { closeAfterTest, tempDir } from '../support/tempDir'
 import { sampleFile } from '../support/vcrm'
 
 // node:fs 는 내장 모듈이라 그대로는 spyOn 이 안 된다 (모듈 네임스페이스가 고정됨).
@@ -36,7 +36,7 @@ function setup() {
     reopen: vi.fn(),
     reloadWindow: vi.fn()
   }
-  const db = openDatabase(env.dbPath)
+  const db = closeAfterTest(openDatabase(env.dbPath))
   updateSettings(db, { branchName: '강남점' })
   const files = memoryFiles()
   return { dir, env, db, files, h: createHandlers(db, () => NOW, files, env) }

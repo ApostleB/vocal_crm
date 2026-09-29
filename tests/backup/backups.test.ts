@@ -14,7 +14,7 @@ import {
 } from '@main/backup/backups'
 import { createCustomer } from '@main/store/customers'
 import { customerInput, NOW } from '../support/db'
-import { tempDir } from '../support/tempDir'
+import { closeAfterTest, tempDir } from '../support/tempDir'
 
 // node:fs 는 내장 모듈이라 그대로는 spyOn 이 안 된다. 실제 구현을 그대로 감싼 객체로 바꿔 두면
 // 개별 테스트에서 함수 하나만 골라 바꿔치기할 수 있다
@@ -43,7 +43,7 @@ describe('backupFileName / listBackups', () => {
 describe('createBackup / pruneBackups', () => {
   it('열려 있는 DB 의 복사본을 만들고, 같은 초에 또 만들면 1초 뒤 이름을 쓴다', async () => {
     const dir = tempDir()
-    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    const db = closeAfterTest(openDatabase(join(dir, 'vocal_crm.db')))
     createCustomer(db, customerInput(), NOW)
     const backups = join(dir, 'backups')
     const first = await createBackup(db, backups, 'auto', at(15, 30))
@@ -61,7 +61,7 @@ describe('createBackup / pruneBackups', () => {
 
   it('백업이 실패하면 tmp 를 지우고 정식 이름의 파일은 목록에 남기지 않는다', async () => {
     const dir = tempDir()
-    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    const db = closeAfterTest(openDatabase(join(dir, 'vocal_crm.db')))
     db.close() // 닫힌 db 로 부르면 db.backup() 이 실패한다
     const backups = join(dir, 'backups')
     await expect(createBackup(db, backups, 'manual', at(9, 0))).rejects.toThrow(
@@ -73,7 +73,7 @@ describe('createBackup / pruneBackups', () => {
 
   it('임시 파일을 정식 이름으로 옮기지 못하면 tmp 를 지우고 BACKUP_FAILED 를 던진다 (tmp 정리 분기를 실제로 탄다)', async () => {
     const dir = tempDir()
-    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    const db = closeAfterTest(openDatabase(join(dir, 'vocal_crm.db')))
     const backups = join(dir, 'backups')
     const fs = await import('node:fs')
     const rename = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
@@ -103,7 +103,7 @@ describe('createBackup / pruneBackups', () => {
 describe('validateBackupFile / replaceDatabaseFile', () => {
   it('정상 백업은 통과, SQLite 가 아니거나 VOCAL CRM 이 아니거나 더 새 버전이면 거부', async () => {
     const dir = tempDir()
-    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    const db = closeAfterTest(openDatabase(join(dir, 'vocal_crm.db')))
     const backup = await createBackup(db, dir, 'manual', at(9, 0))
     expect(() => validateBackupFile(join(dir, backup.fileName))).not.toThrow()
 
