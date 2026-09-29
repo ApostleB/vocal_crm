@@ -134,6 +134,24 @@ describe('openWithRecovery', () => {
     r?.db.close()
   })
 
+  it('복원한 뒤 다시 연 DB 도 손상되어 있으면 fatal 로 끝낸다 (복원 후 재검사)', async () => {
+    const { dbPath, backupDir } = await setupWithBackup()
+    writeFileSync(dbPath, 'this is not a database')
+    const connection = await import('@main/db/connection')
+    const integrityCheck = vi.spyOn(connection, 'checkIntegrity').mockReturnValueOnce(false)
+    const u = ui(true)
+    try {
+      const r = openWithRecovery(dbPath, backupDir, u, new Date(2026, 8, 28, 10, 0))
+      expect(r).toBeNull()
+      expect(u.fatal).toHaveBeenCalledWith(
+        '데이터 파일을 열 수 없습니다',
+        '복원한 백업도 손상되어 있습니다. 데이터 폴더를 확인해 주세요.'
+      )
+    } finally {
+      integrityCheck.mockRestore()
+    }
+  })
+
   it('최신 백업이 깨졌으면 그다음 백업으로 복원하고, restore-tmp 를 남기지 않는다', async () => {
     const { dir, dbPath, backupDir } = await setupWithBackup()
     const db = openDatabase(dbPath)
