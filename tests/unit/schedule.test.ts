@@ -29,4 +29,10 @@ describe('schedule', () => {
     expect(hits.map((r) => r.id)).toEqual(['a', 'b'])
     expect(findConflicts({ date: '2026-09-28', time: '14:00' }, others, 60)).toEqual([])
   })
+
+  it('경계: 수업 길이(60분)만큼 딱 떨어지면 겹치지 않고, 그보다 가까우면 겹친다', () => {
+    const others = [makeReservation({ id: 'a', time: '15:00' })]
+    expect(findConflicts({ date: '2026-09-28', time: '16:00' }, others, 60)).toEqual([])
+    expect(findConflicts({ date: '2026-09-28', time: '15:50' }, others, 60).map((r) => r.id)).toEqual(['a'])
+  })
 })
