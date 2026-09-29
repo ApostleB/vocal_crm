@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from '@main/db/connection'
-import { SCHEMA_VERSION } from '@main/db/migrations'
+import { migrate, SCHEMA_VERSION } from '@main/db/migrations'
 
 describe('migrations', () => {
   it('빈 DB에 모든 테이블을 만들고 user_version을 올린다', () => {
@@ -25,5 +25,11 @@ describe('migrations', () => {
   it('외래 키가 켜져 있다', () => {
     const db = openDatabase(':memory:')
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1)
+  })
+
+  it('더 새 버전의 앱에서 만든 DB는 열 수 없다', () => {
+    const db = openDatabase(':memory:')
+    db.pragma('user_version = 999')
+    expect(() => migrate(db)).toThrow('더 새 버전')
   })
 })

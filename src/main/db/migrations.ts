@@ -1,3 +1,4 @@
+import { AppError } from '@shared/result'
 import type { DB } from './connection'
 
 /** 순서대로 적용. 이미 배포된 항목은 절대 수정하지 말고 새 항목을 뒤에 추가한다 */
@@ -99,6 +100,9 @@ export const SCHEMA_VERSION = MIGRATIONS.length
 
 export function migrate(db: DB): void {
   const current = db.pragma('user_version', { simple: true }) as number
+  if (current > MIGRATIONS.length) {
+    throw new AppError('DB_TOO_NEW', '더 새 버전의 앱에서 만든 데이터입니다. 앱을 새 버전으로 바꿔 주세요.')
+  }
   for (let version = current; version < MIGRATIONS.length; version++) {
     db.transaction(() => {
       MIGRATIONS[version](db)
