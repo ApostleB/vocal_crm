@@ -19,7 +19,7 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['tests/unit/**/*.test.ts', 'tests/db/**/*.test.ts', 'tests/transfer/**/*.test.ts']
+          include: ['tests/unit/**/*.test.ts', 'tests/db/**/*.test.ts', 'tests/transfer/**/*.test.ts', 'tests/backup/**/*.test.ts']
         }
       },
       {

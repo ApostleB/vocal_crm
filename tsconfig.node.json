@@ -8,7 +8,8 @@
     "src/shared/**/*",
     "tests/unit/**/*",
     "tests/db/**/*",
-    "tests/transfer/**/*"
+    "tests/transfer/**/*",
+    "tests/backup/**/*"
   ],
   "compilerOptions": {
     "composite": true,
