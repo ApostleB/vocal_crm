@@ -70,4 +70,9 @@ describe('lessons store', () => {
     const id = seedCustomer(db)
     expect(() => saveLesson(db, base(id, { lessonDate: '9/28' }), NOW)).toThrow('수업일을 확인해 주세요.')
   })
+
+  it('없는 고객에게는 수업 기록을 저장할 수 없다', () => {
+    const db = createTestDb()
+    expect(() => saveLesson(db, base('nope'), NOW)).toThrow('고객을 찾을 수 없습니다.')
+  })
 })

@@ -49,6 +49,8 @@ export function saveLesson(db: DB, input: LessonInput, now: Date): Lesson {
            homework = @homework, deduct_pass = @deductPassInt, updated_at = @updatedAt WHERE id = @id`
       ).run({ ...lesson, deductPassInt: lesson.deductPass ? 1 : 0 })
     } else {
+      const exists = db.prepare('SELECT 1 FROM customers WHERE id = ?').get(input.customerId)
+      if (!exists) throw notFound('고객을 찾을 수 없습니다.')
       const reservationId =
         input.reservationId ??
         ((db
