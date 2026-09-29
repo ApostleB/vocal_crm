@@ -104,13 +104,23 @@ export function saveLesson(db: DB, input: LessonInput, now: Date): Lesson {
   })()
 }
 
-/** 수업 기록 삭제. 연결된 예약은 다시 예정(scheduled)으로 돌아간다. 완료한 목표는 완료 상태를 유지한다 */
+/**
+ * 수업 기록 삭제. 연결된 예약은 다시 예정(scheduled)으로 돌아간다.
+ * 단, 고객이 이미 종료·타지점 이동 상태면 예약을 되살리지 않고 취소(canceled) 처리한다.
+ * 완료한 목표는 완료 상태를 유지한다
+ */
 export function deleteLesson(db: DB, id: string, now: Date): void {
   db.transaction(() => {
     const lesson = getLesson(db, id)
     if (!lesson) return
     if (lesson.reservationId) {
-      db.prepare("UPDATE reservations SET status = 'scheduled', updated_at = ? WHERE id = ? AND status = 'done'").run(
+      const customerStatus = db
+        .prepare('SELECT status FROM customers WHERE id = ?')
+        .pluck()
+        .get(lesson.customerId) as string | undefined
+      const revertTo = customerStatus === 'ended' || customerStatus === 'moved' ? 'canceled' : 'scheduled'
+      db.prepare("UPDATE reservations SET status = ?, updated_at = ? WHERE id = ? AND status = 'done'").run(
+        revertTo,
         iso(now),
         lesson.reservationId
       )
