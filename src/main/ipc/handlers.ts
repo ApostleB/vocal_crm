@@ -9,15 +9,22 @@ import { getCustomerDetail, getHome, listReservationsInRange, listSummaries } fr
 import { cancelReservation, saveReservation } from '../store/reservations'
 import { getSettings, updateSettings } from '../store/settings'
 import { changeStatus, countOpenReservations } from '../store/status'
+import { noFileAccess, type FileAccess } from '../transfer/files'
+import { createTransferHandlers } from './transferHandlers'
 
 export type Handlers = {
   [C in Channel]: (...args: ArgsOf<C>) => ResultOf<C> | Promise<ResultOf<C>>
 }
 
-/** 채널별 처리 함수. clock 은 테스트에서 시각을 고정하기 위한 것 */
-export function createHandlers(db: DB, clock: () => Date = () => new Date()): Handlers {
+/** 채널별 처리 함수. clock 은 테스트에서 시각을, files 는 파일 대화상자·읽기·쓰기를 바꿔 끼우기 위한 것 */
+export function createHandlers(
+  db: DB,
+  clock: () => Date = () => new Date(),
+  files: FileAccess = noFileAccess
+): Handlers {
   const today = (): string => toDateString(clock())
   return {
+    ...createTransferHandlers(db, clock, files),
     'settings.get': () => getSettings(db),
     'settings.update': (patch) => updateSettings(db, patch),
 

@@ -15,6 +15,19 @@ import type {
   Settings,
   StatusChangeInput
 } from './types'
+import type { ImportDecision, ImportPreview, ImportResult, RosterPreview } from './transferTypes'
+
+export interface ExportVcrmRequest {
+  customerIds: string[]
+  targetBranch: string | null
+  /** 저장한 뒤 고른 고객을 '타지점 이동' 으로 바꾼다 */
+  markMoved: boolean
+}
+
+/** 파일 저장 결과. 저장 창에서 취소하면 saved: false */
+export interface SaveResult {
+  saved: boolean
+}
 
 /** IPC 계약: 채널 이름 → 인자 튜플과 결과 타입 */
 export interface ApiSpec {
@@ -46,6 +59,15 @@ export interface ApiSpec {
   'reservations.range': { args: [from: string, to: string]; result: ReservationWithCustomer[] }
   'reservations.save': { args: [input: ReservationInput]; result: Reservation }
   'reservations.cancel': { args: [id: string]; result: void }
+
+  'transfer.exportVcrm': { args: [request: ExportVcrmRequest]; result: SaveResult & { count: number; moved: number } }
+  'transfer.openVcrm': { args: []; result: ImportPreview | null }
+  'transfer.applyVcrm': { args: [token: string, decisions: ImportDecision[]]; result: ImportResult }
+
+  'excel.exportCustomers': { args: [customerIds: string[]]; result: SaveResult }
+  'excel.saveRosterTemplate': { args: []; result: SaveResult }
+  'excel.openRoster': { args: []; result: RosterPreview | null }
+  'excel.applyRoster': { args: [token: string, rowNumbers: number[]]; result: { added: number } }
 }
 
 export type Channel = keyof ApiSpec
@@ -75,7 +97,14 @@ const CHANNEL_MAP: Record<Channel, true> = {
   'passes.remove': true,
   'reservations.range': true,
   'reservations.save': true,
-  'reservations.cancel': true
+  'reservations.cancel': true,
+  'transfer.exportVcrm': true,
+  'transfer.openVcrm': true,
+  'transfer.applyVcrm': true,
+  'excel.exportCustomers': true,
+  'excel.saveRosterTemplate': true,
+  'excel.openRoster': true,
+  'excel.applyRoster': true
 }
 
 export const CHANNELS = Object.keys(CHANNEL_MAP) as Channel[]
