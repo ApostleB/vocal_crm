@@ -92,6 +92,28 @@ describe('app / backup channels', () => {
     rename.mockRestore()
   })
 
+  it('rename 도 실패하고 tmp 정리(rmSync)도 실패해도 reopen 은 항상 불리고 원래 데이터는 그대로다', async () => {
+    const { env, db, h } = setup()
+    const b = await h['backup.create']()
+    createCustomer(db, customerInput({ name: '박서준' }), NOW)
+    const rename = vi.spyOn(await import('@main/backup/backups'), 'renameWithRetry').mockRejectedValueOnce(new Error('EBUSY'))
+    const fs = await import('node:fs')
+    const rm = vi.spyOn(fs, 'rmSync').mockImplementation(() => {
+      throw new Error('정리도 실패')
+    })
+    try {
+      await expect(h['backup.restore'](b.fileName)).rejects.toThrow(
+        '복원하지 못했습니다. 다른 프로그램이 데이터 파일을 쓰고 있을 수 있습니다. 잠시 뒤 다시 시도해 주세요.'
+      )
+      expect(env.reopen).toHaveBeenCalledTimes(1)
+      expect(env.reloadWindow).not.toHaveBeenCalled()
+      expect(names(env.dbPath)).toEqual(['박서준'])
+    } finally {
+      rename.mockRestore()
+      rm.mockRestore()
+    }
+  })
+
   it('목록에 없는 이름으로는 복원할 수 없다 (경로 조작 방지)', async () => {
     const { env, h } = setup()
     await expect(h['backup.restore']('../vocal_crm.db')).rejects.toThrow('백업을 찾을 수 없습니다.')

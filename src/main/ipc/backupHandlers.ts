@@ -45,18 +45,27 @@ export function createBackupHandlers(
     try {
       await createBackup(db, e.backupDir, 'before-restore', clock())
     } catch (err) {
-      rmSync(restoreSource, { force: true })
+      try {
+        rmSync(restoreSource, { force: true })
+      } catch {
+        /* 임시 파일 정리 실패는 무시 - 원래 백업 오류가 사용자에게 가야 한다 */
+      }
       throw err
     }
     db.close()
     try {
       await renameWithRetry(restoreSource, e.dbPath)
-    } catch {
-      rmSync(restoreSource, { force: true })
+    } catch (err) {
+      try {
+        rmSync(restoreSource, { force: true })
+      } catch {
+        /* 임시 파일 정리 실패는 무시 - reopen 은 항상 불러야 한다 */
+      }
       e.reopen()
       throw new AppError(
         'RESTORE_FAILED',
-        '복원하지 못했습니다. 다른 프로그램이 데이터 파일을 쓰고 있을 수 있습니다. 잠시 뒤 다시 시도해 주세요.'
+        '복원하지 못했습니다. 다른 프로그램이 데이터 파일을 쓰고 있을 수 있습니다. 잠시 뒤 다시 시도해 주세요.',
+        { cause: err }
       )
     }
     e.reopen()
