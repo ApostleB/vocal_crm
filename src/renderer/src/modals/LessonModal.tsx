@@ -84,7 +84,9 @@ function LessonForm({ detail, lessonId, reservationId, initialDate, onDirtyChang
   const [values, setValues] = useState(initial)
   const set = (patch: Partial<typeof values>): void => setValues((v) => ({ ...v, ...patch }))
   const dirty = JSON.stringify(values) !== JSON.stringify(initial)
-  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+  useEffect(() => {
+    onDirtyChange(dirty)
+  }, [dirty, onDirtyChange])
 
   const save = useApiMutation('lessons.save')
 
