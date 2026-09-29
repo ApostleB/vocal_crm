@@ -98,6 +98,7 @@ function LessonForm({ detail, lessonId, reservationId, initialDate, onDirtyChang
   const after = base === null ? null : base - (values.deductPass ? 1 : 0)
 
   const submit = async (bookNext: boolean): Promise<void> => {
+    if (save.isPending) return
     try {
       await save.mutateAsync([
         {
