@@ -1,7 +1,8 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { openDatabase } from './db/connection'
+import { BACKUP_KIND_LABEL } from '@shared/backupTypes'
+import { openWithRecovery, runDailyBackup, type RecoveryUi } from './backup/startup'
 import { createHandlers } from './ipc/handlers'
 import { registerIpc } from './ipc/register'
 import { initLogging, logError } from './logger'
@@ -68,10 +69,42 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.focus()
   })
 
-  void app.whenReady().then(() => {
-    const db = openDatabase(join(app.getPath('userData'), 'vocal_crm.db'))
-    registerIpc(createHandlers(db, () => new Date(), createElectronFileAccess(() => mainWindow)), logError)
-    createWindow()
+  const recoveryUi: RecoveryUi = {
+    askRestore: (latest) =>
+      dialog.showMessageBoxSync({
+        type: 'warning',
+        buttons: ['최근 백업으로 복원', '종료'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'VOCAL CRM',
+        message: '데이터 파일에 문제가 있습니다. 최근 백업으로 복원할까요?',
+        detail: `최근 백업: ${latest.createdAt} (${BACKUP_KIND_LABEL[latest.kind]})\n지금 파일은 지우지 않고 옆에 따로 보관합니다.`
+      }) === 0,
+    fatal: (title, message) => dialog.showErrorBox(title, message)
+  }
+
+  void app.whenReady().then(async () => {
+    try {
+      const userData = app.getPath('userData')
+      const backupDir = join(userData, 'backups')
+      const opened = openWithRecovery(join(userData, 'vocal_crm.db'), backupDir, recoveryUi, new Date())
+      if (!opened) {
+        app.quit()
+        return
+      }
+      const { db } = opened
+      try {
+        await runDailyBackup(db, backupDir, new Date())
+      } catch (err) {
+        logError(err) // 자동 백업 실패로 앱을 막지는 않는다
+      }
+      registerIpc(createHandlers(db, () => new Date(), createElectronFileAccess(() => mainWindow)), logError)
+      createWindow()
+    } catch (err) {
+      logError(err)
+      dialog.showErrorBox('VOCAL CRM', '앱을 시작하지 못했습니다. 데이터 폴더의 logs 폴더에 기록을 남겼습니다.')
+      app.quit()
+    }
   })
 
   app.on('window-all-closed', () => app.quit())

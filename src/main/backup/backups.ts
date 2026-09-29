@@ -13,11 +13,16 @@ const NAME_RE = /^vocal_crm_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_(auto|ma
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
-/** 로컬 시각 기준 "vocal_crm_20260928_153000_auto.db" */
-export function backupFileName(kind: BackupKind, now: Date): string {
+/** 로컬 시각 "20260928_153000" */
+export function fileTimestamp(now: Date): string {
   const d = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
   const t = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-  return `vocal_crm_${d}_${t}_${kind}.db`
+  return `${d}_${t}`
+}
+
+/** 로컬 시각 기준 "vocal_crm_20260928_153000_auto.db" */
+export function backupFileName(kind: BackupKind, now: Date): string {
+  return `vocal_crm_${fileTimestamp(now)}_${kind}.db`
 }
 
 function parseName(fileName: string): Omit<BackupInfo, 'size'> | null {
