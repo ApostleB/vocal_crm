@@ -1,5 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
+import { openDatabase } from './db/connection'
+import { createHandlers } from './ipc/handlers'
+import { registerIpc } from './ipc/register'
 
 // 개발 중에는 실제 데이터와 섞이지 않게 별도 폴더를 쓴다
 if (!app.isPackaged) {
@@ -51,6 +54,8 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   void app.whenReady().then(() => {
+    const db = openDatabase(join(app.getPath('userData'), 'vocal_crm.db'))
+    registerIpc(createHandlers(db))
     createWindow()
   })
 
