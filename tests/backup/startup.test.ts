@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openDatabase } from '@main/db/connection'
 import { createBackup, listBackups } from '@main/backup/backups'
@@ -7,6 +7,13 @@ import { openWithRecovery, runDailyBackup, type RecoveryUi } from '@main/backup/
 import { createCustomer } from '@main/store/customers'
 import { customerInput, NOW } from '../support/db'
 import { tempDir } from '../support/tempDir'
+
+// node:fs 는 내장 모듈이라 그대로는 spyOn 이 안 된다. 실제 구현을 그대로 감싼 객체로 바꿔 두면
+// 개별 테스트에서 함수 하나(예: renameSync)만 특정 호출에 대해서만 실패하도록 바꿔치기할 수 있다
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return { ...actual }
+})
 
 function ui(answer: boolean) {
   return {
@@ -120,6 +127,33 @@ describe('openWithRecovery', () => {
     expect(existsSync(`${dbPath}.restore-tmp`)).toBe(false)
     expect(readdirSync(dir)).toContain('vocal_crm.db.broken-20260928_100000')
     r?.db.close()
+  })
+
+  it('복원 마지막 rename 이 실패하면 원래 파일로 되돌리고 fatal 로 끝난다 (DB 없는 상태로 남지 않는다)', async () => {
+    const { dir, dbPath, backupDir } = await setupWithBackup()
+    writeFileSync(dbPath, 'broken db content')
+    const tmpPath = `${dbPath}.restore-tmp`
+    const fs = await import('node:fs')
+    const actualRename = fs.renameSync
+    const rename = vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (from === tmpPath && to === dbPath) throw Object.assign(new Error('EIO'), { code: 'EIO' })
+      actualRename(from, to)
+    })
+    const u = ui(true)
+    try {
+      const r = openWithRecovery(dbPath, backupDir, u, new Date(2026, 8, 28, 10, 0))
+      expect(r).toBeNull()
+      expect(u.fatal).toHaveBeenCalledWith(
+        'VOCAL CRM',
+        '데이터 파일을 열지 못했습니다. PC를 다시 켠 뒤 실행해 주세요. 계속되면 데이터 폴더의 logs 폴더를 전달해 주세요.'
+      )
+      // DB 파일이 없는 상태로 끝나지 않고 원래(고장난) 내용 그대로 남는다
+      expect(readFileSync(dbPath, 'utf-8')).toBe('broken db content')
+      expect(existsSync(tmpPath)).toBe(false)
+      expect(readdirSync(dir).some((f) => f.includes('.broken-'))).toBe(false)
+    } finally {
+      rename.mockRestore()
+    }
   })
 })
 

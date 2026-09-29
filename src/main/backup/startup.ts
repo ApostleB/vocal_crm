@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, renameSync } from 'node:fs'
+import { copyFileSync, existsSync, renameSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import type { BackupInfo } from '@shared/backupTypes'
 import { toDateString } from '@shared/domain/dates'
@@ -88,13 +88,37 @@ export function openWithRecovery(dbPath: string, backupDir: string, ui: Recovery
     // 그래서 백업을 tmp 에 미리 복사해 둔 뒤에만 원본을 옆으로 옮기고, 마지막에 tmp 를 rename 한다
     const tmp = `${dbPath}.restore-tmp`
     copyFileSync(join(backupDir, chosen.fileName), tmp)
+    let broken: string | null = null
+    let journalMoved = false
     if (existsSync(dbPath)) {
-      const broken = `${dbPath}.broken-${fileTimestamp(now)}`
+      broken = `${dbPath}.broken-${fileTimestamp(now)}`
       renameSync(dbPath, broken)
       const journal = `${dbPath}-journal`
-      if (existsSync(journal)) renameSync(journal, `${broken}-journal`)
+      if (existsSync(journal)) {
+        renameSync(journal, `${broken}-journal`)
+        journalMoved = true
+      }
     }
-    renameSync(tmp, dbPath)
+    try {
+      renameSync(tmp, dbPath)
+    } catch (renameErr) {
+      ui.log(renameErr)
+      // 마지막 rename 이 실패해서 DB 파일이 없는 상태로 끝나면 안 되니 원래 파일로 되돌린다
+      if (broken) {
+        renameSync(broken, dbPath)
+        if (journalMoved) renameSync(`${broken}-journal`, `${dbPath}-journal`)
+      }
+      try {
+        rmSync(tmp, { force: true })
+      } catch {
+        /* 임시 파일 정리 실패는 무시 */
+      }
+      ui.fatal(
+        'VOCAL CRM',
+        '데이터 파일을 열지 못했습니다. PC를 다시 켠 뒤 실행해 주세요. 계속되면 데이터 폴더의 logs 폴더를 전달해 주세요.'
+      )
+      return null
+    }
     const db = openDatabase(dbPath)
     if (!checkIntegrity(db)) {
       db.close()
