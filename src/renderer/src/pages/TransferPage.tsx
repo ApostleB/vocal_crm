@@ -37,14 +37,15 @@ export function TransferPage(): React.JSX.Element {
   const exportExcel = useApiMutation('excel.exportCustomers')
 
   const saveExcel = async (customers: CustomerSummary[]): Promise<void> => {
-    setPicker(null)
     let result: { saved: boolean }
     try {
       result = await exportExcel.mutateAsync([customers.map((c) => c.id)])
     } catch {
       return
     }
-    if (result.saved) notifySuccess(`${customers.length}명을 엑셀로 저장했습니다.`)
+    if (!result.saved) return // 저장 창에서 취소 — 고객 선택 창은 그대로 둔다
+    setPicker(null)
+    notifySuccess(`${customers.length}명을 엑셀로 저장했습니다.`)
   }
 
   return (

@@ -55,4 +55,15 @@ describe('가져오기·내보내기 — 내보내기', () => {
     await user.click(screen.getByRole('button', { name: '엑셀로 저장' }))
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('excel.exportCustomers', ['b']))
   })
+
+  it('엑셀 저장 창에서 취소하면 고객 선택 창이 그대로 남는다', async () => {
+    const user = userEvent.setup()
+    mockApi({ 'customers.list': () => customers, 'excel.exportCustomers': () => ({ saved: false }) })
+    renderWithProviders(<TransferPage />)
+    await user.click(screen.getByRole('button', { name: '엑셀 저장' }))
+    await user.click(await screen.findByLabelText('박서준 선택'))
+    await user.click(screen.getByRole('button', { name: '엑셀로 저장' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '엑셀로 저장' })).toBeInTheDocument())
+    expect(screen.getByText('1명 선택됨')).toBeInTheDocument()
+  })
 })
