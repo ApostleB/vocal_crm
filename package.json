@@ -19,7 +19,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "exceljs": "^4.4.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
