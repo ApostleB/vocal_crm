@@ -13,6 +13,7 @@ import { HomePage } from './pages/HomePage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TransferPage } from './pages/TransferPage'
 import { theme } from './theme'
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ function Root(): React.JSX.Element {
           <Route index element={<HomePage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route path="transfer" element={<TransferPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

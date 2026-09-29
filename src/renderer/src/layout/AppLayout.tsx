@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { AppShell, NavLink, Stack, Text, Title } from '@mantine/core'
-import { IconCalendarWeek, IconHome, IconSettings } from '@tabler/icons-react'
+import { IconArrowsExchange, IconCalendarWeek, IconHome, IconSettings } from '@tabler/icons-react'
 import { Link, Outlet, useLocation } from 'react-router'
 import { useDayRollover } from '../lib/useDayRollover'
 
@@ -33,6 +33,13 @@ export function AppLayout({ branchName }: Props): React.JSX.Element {
           label="일정"
           leftSection={<IconCalendarWeek size={18} />}
           active={pathname === '/schedule'}
+        />
+        <NavLink
+          component={Link}
+          to="/transfer"
+          label="가져오기·내보내기"
+          leftSection={<IconArrowsExchange size={18} />}
+          active={pathname === '/transfer'}
         />
         <NavLink
           component={Link}
