@@ -9,8 +9,8 @@ export type Result<T> = { ok: true; data: T } | { ok: false; error: ErrorPayload
 export class AppError extends Error {
   readonly code: string
 
-  constructor(code: string, message: string) {
-    super(message)
+  constructor(code: string, message: string, options?: { cause?: unknown }) {
+    super(message, options)
     this.name = 'AppError'
     this.code = code
   }

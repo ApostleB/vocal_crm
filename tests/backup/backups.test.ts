@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
 import { checkIntegrity, openDatabase } from '@main/db/connection'
@@ -49,6 +49,18 @@ describe('createBackup / pruneBackups', () => {
     const copy = new Database(join(backups, first.fileName), { readonly: true })
     expect(copy.prepare('SELECT name FROM customers').pluck().all()).toEqual(['김민지'])
     copy.close()
+  })
+
+  it('백업이 실패하면 tmp 를 지우고 정식 이름의 파일은 목록에 남기지 않는다', async () => {
+    const dir = tempDir()
+    const db = openDatabase(join(dir, 'vocal_crm.db'))
+    db.close() // 닫힌 db 로 부르면 db.backup() 이 실패한다
+    const backups = join(dir, 'backups')
+    await expect(createBackup(db, backups, 'manual', at(9, 0))).rejects.toThrow(
+      '백업을 만들지 못했습니다. 디스크 공간을 확인해 주세요.'
+    )
+    expect(listBackups(backups)).toEqual([])
+    expect(readdirSync(backups)).toEqual([])
   })
 
   it('최근 30개만 남긴다', () => {

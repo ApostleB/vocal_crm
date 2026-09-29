@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import type { BackupInfo, BackupKind } from '@shared/backupTypes'
 import { AppError } from '@shared/result'
@@ -48,14 +48,24 @@ export function pruneBackups(dir: string, keep = BACKUP_KEEP): number {
   return old.length
 }
 
-/** 앱을 쓰는 중에도 일관된 복사본을 만든다 (better-sqlite3 backup API). 만든 뒤 오래된 백업을 정리한다 */
+/**
+ * 앱을 쓰는 중에도 일관된 복사본을 만든다 (better-sqlite3 backup API). 만든 뒤 오래된 백업을 정리한다.
+ * 만드는 도중(백신 검사 등)에 잘못 잘린 파일이 정식 이름으로 남지 않도록 tmp 이름에 쓴 뒤 rename 한다
+ */
 export async function createBackup(db: DB, dir: string, kind: BackupKind, now: Date): Promise<BackupInfo> {
   mkdirSync(dir, { recursive: true })
   let at = now
   // 같은 초에 두 번 만들면 이름이 겹치므로 1초씩 뒤로 민다
   while (existsSync(join(dir, backupFileName(kind, at)))) at = new Date(at.getTime() + 1000)
   const fileName = backupFileName(kind, at)
-  await db.backup(join(dir, fileName))
+  const tmpPath = join(dir, `${fileName}.tmp`)
+  try {
+    await db.backup(tmpPath)
+  } catch (err) {
+    rmSync(tmpPath, { force: true })
+    throw new AppError('BACKUP_FAILED', '백업을 만들지 못했습니다. 디스크 공간을 확인해 주세요.', { cause: err })
+  }
+  renameSync(tmpPath, join(dir, fileName))
   pruneBackups(dir)
   const info = listBackups(dir).find((b) => b.fileName === fileName)
   if (!info) throw new AppError('BACKUP_FAILED', '백업을 만들지 못했습니다.')
