@@ -1,4 +1,5 @@
 import type { CustomerStatus, StatusChangeInput } from '@shared/types'
+import { isCustomerStatus } from '@shared/domain/enums'
 import type { DB } from '../db/connection'
 import { getCustomer, insertStatusLog } from './customers'
 import { blankToNull, iso, newId, notFound, optionalDate, requireDate, validation } from './util'
@@ -22,6 +23,7 @@ export function changeStatus(
   input: StatusChangeInput,
   now: Date
 ): { canceledReservations: number } {
+  if (!isCustomerStatus(input.toStatus)) throw validation('상태를 확인해 주세요.')
   const customer = getCustomer(db, input.customerId)
   if (!customer) throw notFound('고객을 찾을 수 없습니다.')
   if (customer.status === input.toStatus) throw validation('이미 같은 상태입니다.')

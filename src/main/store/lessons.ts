@@ -1,7 +1,7 @@
 import type { Lesson, LessonInput } from '@shared/types'
 import type { DB } from '../db/connection'
 import { LESSON_COLUMNS } from './columns'
-import { blankToNull, iso, newId, notFound, requireDate } from './util'
+import { blankToNull, iso, newId, notFound, requireDate, validation } from './util'
 
 type LessonRow = Omit<Lesson, 'deductPass'> & { deductPass: number }
 
@@ -51,6 +51,14 @@ export function saveLesson(db: DB, input: LessonInput, now: Date): Lesson {
     } else {
       const exists = db.prepare('SELECT 1 FROM customers WHERE id = ?').get(input.customerId)
       if (!exists) throw notFound('고객을 찾을 수 없습니다.')
+      if (input.reservationId) {
+        const linked = db
+          .prepare('SELECT customer_id AS customerId, status FROM reservations WHERE id = ?')
+          .get(input.reservationId) as { customerId: string; status: string } | undefined
+        if (!linked || linked.customerId !== input.customerId || linked.status !== 'scheduled') {
+          throw validation('연결할 예약을 확인해 주세요.')
+        }
+      }
       const reservationId =
         input.reservationId ??
         ((db

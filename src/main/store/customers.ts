@@ -1,4 +1,5 @@
 import type { Customer, CustomerInput, StatusLog } from '@shared/types'
+import { isGender, isPurpose } from '@shared/domain/enums'
 import { normalizePhone } from '@shared/domain/phone'
 import type { DB } from '../db/connection'
 import { customerColumns, STATUS_LOG_COLUMNS } from './columns'
@@ -13,6 +14,8 @@ export function getCustomer(db: DB, id: string): Customer | null {
 function cleanInput(input: CustomerInput): CustomerInput {
   const name = input.name.trim()
   if (!name) throw validation('이름을 입력해 주세요.')
+  if (input.gender !== null && !isGender(input.gender)) throw validation('성별을 확인해 주세요.')
+  if (input.purpose !== null && !isPurpose(input.purpose)) throw validation('수강 목적을 확인해 주세요.')
   return {
     name,
     phone: normalizePhone(input.phone),

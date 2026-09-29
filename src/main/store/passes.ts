@@ -18,11 +18,15 @@ export function savePass(db: DB, input: PassInput, now: Date): Pass {
   const ts = iso(now)
   if (input.id) {
     const r = db
-      .prepare('UPDATE passes SET count = ?, purchased_at = ?, amount = ?, note = ?, updated_at = ? WHERE id = ?')
-      .run(input.count, purchasedAt, input.amount, blankToNull(input.note), ts, input.id)
+      .prepare(
+        'UPDATE passes SET count = ?, purchased_at = ?, amount = ?, note = ?, updated_at = ? WHERE id = ? AND customer_id = ?'
+      )
+      .run(input.count, purchasedAt, input.amount, blankToNull(input.note), ts, input.id, input.customerId)
     if (r.changes === 0) throw notFound('수강권 기록을 찾을 수 없습니다.')
     return db.prepare(`SELECT ${PASS_COLUMNS} FROM passes WHERE id = ?`).get(input.id) as Pass
   }
+  const exists = db.prepare('SELECT 1 FROM customers WHERE id = ?').get(input.customerId)
+  if (!exists) throw notFound('고객을 찾을 수 없습니다.')
   const pass: Pass = {
     id: newId(),
     customerId: input.customerId,
