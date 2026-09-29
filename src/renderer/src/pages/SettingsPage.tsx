@@ -2,15 +2,19 @@ import { useState } from 'react'
 import { Button, Group, NumberInput, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import type { Settings } from '@shared/types'
 import { useApiMutation, useSettings } from '../api/hooks'
+import { BackupSection } from '../components/settings/BackupSection'
+import { DataSection } from '../components/settings/DataSection'
 import { notifySuccess } from '../lib/notify'
 
 export function SettingsPage(): React.JSX.Element {
   const settings = useSettings()
   if (!settings.data) return <></>
   return (
-    <Stack maw={640}>
-      <Title order={2}>설정</Title>
+    <Stack maw={720}>
+      <Title order={2}>설정·백업</Title>
       <BasicSettings key={JSON.stringify(settings.data)} settings={settings.data} />
+      <BackupSection />
+      <DataSection />
     </Stack>
   )
 }

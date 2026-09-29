@@ -44,7 +44,7 @@ export function AppLayout({ branchName }: Props): React.JSX.Element {
         <NavLink
           component={Link}
           to="/settings"
-          label="설정"
+          label="설정·백업"
           leftSection={<IconSettings size={18} />}
           active={pathname === '/settings'}
         />

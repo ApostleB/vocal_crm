@@ -28,6 +28,12 @@ export const useOpenReservationCount = (customerId: string) =>
     queryFn: () => call('customers.countOpenReservations', customerId)
   })
 
+export const useAppInfo = () => useQuery({ queryKey: ['appInfo'], queryFn: () => call('app.info') })
+
+export const useBackupStatus = () => useQuery({ queryKey: ['backupStatus'], queryFn: () => call('backup.status') })
+
+export const useBackups = () => useQuery({ queryKey: ['backups'], queryFn: () => call('backup.list') })
+
 /**
  * 저장·삭제용. 성공하면 모든 조회를 다시 불러온다 (데이터가 작아서 전부 갱신해도 충분히 빠르다).
  * 사용: const save = useApiMutation('lessons.save'); await save.mutateAsync([input])
