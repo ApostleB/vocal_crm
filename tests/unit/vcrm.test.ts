@@ -21,4 +21,11 @@ describe('parseVcrm', () => {
       '새 버전 앱에서 만든 파일입니다'
     )
   })
+
+  it('고객이 없거나 id 가 겹치면 "이 파일은 읽을 수 없습니다."', () => {
+    expect(() => parseVcrm(JSON.stringify({ ...sampleFile(), customers: [] }))).toThrow('이 파일은 읽을 수 없습니다.')
+    const dup = sampleFile()
+    dup.customers.push(sampleFile().customers[0])
+    expect(() => parseVcrm(JSON.stringify(dup))).toThrow('이 파일은 읽을 수 없습니다.')
+  })
 })

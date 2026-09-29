@@ -7,5 +7,5 @@ export function notifySuccess(message: string): void {
 
 export function notifyError(error: unknown): void {
   const message = error instanceof Error && error.name === 'AppError' ? error.message : UNKNOWN_ERROR_MESSAGE
-  notifications.show({ color: 'red', title: '저장하지 못했습니다', message })
+  notifications.show({ color: 'red', title: '처리하지 못했습니다', message })
 }

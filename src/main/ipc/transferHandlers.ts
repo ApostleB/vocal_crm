@@ -54,7 +54,7 @@ export function createTransferHandlers(
     'transfer.openVcrm': async () => {
       const path = await files.chooseOpenPath(VCRM_FILTERS)
       if (!path) return null
-      const file = parseVcrm((await files.readFile(path)).toString('utf-8'))
+      const file = parseVcrm((await files.readFile(path)).toString('utf-8').replace(/^﻿/, ''))
       pendingVcrm = { token: newId(), file }
       return {
         token: pendingVcrm.token,

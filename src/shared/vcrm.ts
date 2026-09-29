@@ -79,7 +79,7 @@ const fileSchema = z.object({
   exportedAt: z.string(),
   sourceBranch: z.string(),
   targetBranch: z.string().nullable(),
-  customers: z.array(entrySchema)
+  customers: z.array(entrySchema).min(1)
 })
 
 export type VcrmFile = z.infer<typeof fileSchema>
@@ -106,6 +106,8 @@ export function parseVcrm(text: string): VcrmFile {
   }
   const parsed = fileSchema.safeParse(raw)
   if (!parsed.success) throw invalid()
+  const ids = parsed.data.customers.map((e) => e.customer.id)
+  if (new Set(ids).size !== ids.length) throw invalid()
   return parsed.data
 }
 

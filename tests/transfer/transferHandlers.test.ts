@@ -53,6 +53,13 @@ describe('transfer.openVcrm / applyVcrm', () => {
     await expect(async () => h['transfer.applyVcrm'](preview!.token, [])).rejects.toThrow('가져오기 정보가 만료되었습니다')
   })
 
+  it('맨 앞에 UTF-8 BOM 이 있어도 읽는다', async () => {
+    const { files, h } = setup()
+    files.store.set('/in/file', Buffer.from('﻿' + serializeVcrm(sampleFile()), 'utf-8'))
+    const preview = await h['transfer.openVcrm']()
+    expect(preview).toMatchObject({ sourceBranch: '홍대점', rows: [{ incomingId: 'x1', name: '김민지' }] })
+  })
+
   it('취소하면 null, 잘못된 파일이면 읽을 수 없다고 안내', async () => {
     const { files, h } = setup()
     files.nextOpenPath = null
