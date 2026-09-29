@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import type { CustomerSummary } from '@shared/types'
-import type { ImportPreview } from '@shared/transferTypes'
+import type { ImportPreview, RosterPreview } from '@shared/transferTypes'
 import { useApiMutation } from '../api/hooks'
 import { CustomerPickerModal } from '../components/transfer/CustomerPickerModal'
 import { ExportVcrmModal } from '../components/transfer/ExportVcrmModal'
 import { ImportPreviewModal } from '../components/transfer/ImportPreviewModal'
+import { RosterImportModal } from '../components/transfer/RosterImportModal'
 import { notifySuccess } from '../lib/notify'
 
 function TransferCard(props: {
@@ -39,6 +40,27 @@ export function TransferPage(): React.JSX.Element {
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null)
   const exportExcel = useApiMutation('excel.exportCustomers')
   const openVcrm = useApiMutation('transfer.openVcrm')
+  const [rosterPreview, setRosterPreview] = useState<RosterPreview | null>(null)
+  const saveTemplate = useApiMutation('excel.saveRosterTemplate')
+  const openRoster = useApiMutation('excel.openRoster')
+
+  const downloadTemplate = async (): Promise<void> => {
+    try {
+      const result = await saveTemplate.mutateAsync([])
+      if (result.saved) notifySuccess('명단 양식을 저장했습니다.')
+    } catch {
+      return
+    }
+  }
+
+  const openRosterFile = async (): Promise<void> => {
+    try {
+      const preview = await openRoster.mutateAsync([])
+      if (preview) setRosterPreview(preview)
+    } catch {
+      return
+    }
+  }
 
   const openImport = async (): Promise<void> => {
     try {
@@ -96,6 +118,20 @@ export function TransferPage(): React.JSX.Element {
             엑셀 저장
           </Button>
         </TransferCard>
+        <TransferCard
+          icon="🗂️"
+          tag="엑셀"
+          tagColor="teal"
+          title="엑셀 명단 등록"
+          description="처음 시작할 때 기존 명단(이름·연락처 등)을 양식에 채워 한 번에 새 고객으로 등록합니다."
+        >
+          <Button variant="light" onClick={() => void downloadTemplate()} loading={saveTemplate.isPending}>
+            양식 받기
+          </Button>
+          <Button variant="light" onClick={() => void openRosterFile()} loading={openRoster.isPending}>
+            명단 열기
+          </Button>
+        </TransferCard>
       </SimpleGrid>
 
       {picker === 'vcrm' && (
@@ -119,6 +155,7 @@ export function TransferPage(): React.JSX.Element {
       )}
       {exportTarget && <ExportVcrmModal customers={exportTarget} onClose={() => setExportTarget(null)} />}
       {importPreview && <ImportPreviewModal preview={importPreview} onClose={() => setImportPreview(null)} />}
+      {rosterPreview && <RosterImportModal preview={rosterPreview} onClose={() => setRosterPreview(null)} />}
     </Stack>
   )
 }
