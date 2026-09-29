@@ -51,7 +51,7 @@ export function App(): React.JSX.Element {
       <DatesProvider settings={{ locale: 'ko', firstDayOfWeek: 1 }}>
         <QueryClientProvider client={queryClient}>
           <ModalsProvider labels={{ confirm: '확인', cancel: '취소' }}>
-            <Notifications position="bottom-right" />
+            <Notifications position="bottom-right" limit={3} />
             <HashRouter>
               <Root />
             </HashRouter>

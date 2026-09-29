@@ -50,7 +50,7 @@ export function CustomerDetailPage(): React.JSX.Element {
       </Stack>
     )
   }
-  return <DetailView detail={detail.data} />
+  return <DetailView key={detail.data.customer.id} detail={detail.data} />
 }
 
 function DetailView({ detail }: { detail: CustomerDetail }): React.JSX.Element {

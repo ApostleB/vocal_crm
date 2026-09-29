@@ -90,7 +90,7 @@ export function StatusChangeModal({
             잡혀 있는 예약 {openCount.data}건을 함께 취소합니다.
           </Alert>
         )}
-        {closing && remainingPasses !== null && remainingPasses > 0 && (
+        {closing && remainingPasses !== null && (
           <Text size="sm" c="dimmed">
             ℹ 남은 수강권 {formatRemaining(remainingPasses)} (참고용)
           </Text>
