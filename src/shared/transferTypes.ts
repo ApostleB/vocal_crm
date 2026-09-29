@@ -1,4 +1,5 @@
 import type { HintCustomer } from './domain/merge'
+import type { RosterRowResult } from './domain/roster'
 
 export interface ImportPreviewRow {
   incomingId: string
@@ -28,4 +29,14 @@ export interface ImportResult {
   added: number
   merged: number
   skipped: number
+}
+
+export interface RosterPreviewRow extends RosterRowResult {
+  /** 이 PC 에서 이름 또는 연락처가 같은 고객 */
+  similar: HintCustomer[]
+}
+
+export interface RosterPreview {
+  token: string
+  rows: RosterPreviewRow[]
 }
