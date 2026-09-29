@@ -34,6 +34,13 @@ describe('customers store', () => {
     expect(getCustomer(db, id)).toMatchObject({ purpose: 'exam', vocalRange: 'F3 ~ C5', pinnedNote: '성대결절 이력' })
   })
 
+  it('등록일을 수정하면 "수강 시작" 이력의 날짜도 함께 바뀐다', () => {
+    const db = createTestDb()
+    const id = seedCustomer(db)
+    updateCustomer(db, id, customerInput({ registeredAt: '2026-04-01' }), NOW)
+    expect(listStatusLogs(db, id)[0].date).toBe('2026-04-01')
+  })
+
   it('없는 고객 수정은 거부', () => {
     const db = createTestDb()
     expect(() => updateCustomer(db, 'nope', customerInput(), NOW)).toThrow('고객을 찾을 수 없습니다.')

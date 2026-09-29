@@ -73,15 +73,21 @@ export function createCustomer(db: DB, input: CustomerInput, now: Date): Custome
 
 export function updateCustomer(db: DB, id: string, input: CustomerInput, now: Date): Customer {
   const clean = cleanInput(input)
-  const r = db
-    .prepare(
-      `UPDATE customers SET name = @name, phone = @phone, birth_date = @birthDate, gender = @gender,
-         purpose = @purpose, registered_at = @registeredAt, vocal_range = @vocalRange,
-         preferred_music = @preferredMusic, pinned_note = @pinnedNote, updated_at = @updatedAt
-       WHERE id = @id`
-    )
-    .run({ ...clean, id, updatedAt: iso(now) })
-  if (r.changes === 0) throw notFound('고객을 찾을 수 없습니다.')
+  db.transaction(() => {
+    const r = db
+      .prepare(
+        `UPDATE customers SET name = @name, phone = @phone, birth_date = @birthDate, gender = @gender,
+           purpose = @purpose, registered_at = @registeredAt, vocal_range = @vocalRange,
+           preferred_music = @preferredMusic, pinned_note = @pinnedNote, updated_at = @updatedAt
+         WHERE id = @id`
+      )
+      .run({ ...clean, id, updatedAt: iso(now) })
+    if (r.changes === 0) throw notFound('고객을 찾을 수 없습니다.')
+    db.prepare('UPDATE status_logs SET date = @registeredAt WHERE customer_id = @id AND from_status IS NULL').run({
+      registeredAt: clean.registeredAt,
+      id
+    })
+  })()
   return getCustomer(db, id) as Customer
 }
 
