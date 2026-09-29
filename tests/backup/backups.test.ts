@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import Database from 'better-sqlite3'
@@ -8,6 +8,7 @@ import {
   createBackup,
   listBackups,
   pruneBackups,
+  renameWithRetry,
   replaceDatabaseFile,
   validateBackupFile
 } from '@main/backup/backups'
@@ -108,6 +109,48 @@ describe('validateBackupFile / replaceDatabaseFile', () => {
     expect(reopened.prepare('SELECT COUNT(*) FROM customers').pluck().get()).toBe(0)
     reopened.close()
     expect(existsSync(dbPath)).toBe(true)
+  })
+})
+
+describe('renameWithRetry', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  function fsError(code: string): NodeJS.ErrnoException {
+    const err = new Error(code) as NodeJS.ErrnoException
+    err.code = code
+    return err
+  }
+
+  it('EBUSY 가 두 번 나다가 성공하면 성공한다', async () => {
+    let calls = 0
+    const rename = vi.fn(() => {
+      calls++
+      if (calls <= 2) throw fsError('EBUSY')
+    })
+    const promise = renameWithRetry('/a', '/b', rename)
+    await vi.advanceTimersByTimeAsync(300)
+    await expect(promise).resolves.toBeUndefined()
+    expect(rename).toHaveBeenCalledTimes(3)
+  })
+
+  it('계속 EPERM 이면 3초 뒤 마지막 오류를 던진다', async () => {
+    const rename = vi.fn(() => {
+      throw fsError('EPERM')
+    })
+    const promise = renameWithRetry('/a', '/b', rename)
+    const assertion = expect(promise).rejects.toMatchObject({ code: 'EPERM' })
+    await vi.advanceTimersByTimeAsync(3000)
+    await assertion
+    expect(rename.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('재시도 대상이 아닌 오류(ENOENT)는 바로 던진다', async () => {
+    const rename = vi.fn(() => {
+      throw fsError('ENOENT')
+    })
+    await expect(renameWithRetry('/a', '/b', rename)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(rename).toHaveBeenCalledTimes(1)
   })
 })
 

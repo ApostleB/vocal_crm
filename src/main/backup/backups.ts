@@ -103,3 +103,31 @@ export function validateBackupFile(path: string): void {
 export function replaceDatabaseFile(dbPath: string, sourcePath: string): void {
   copyFileSync(sourcePath, dbPath)
 }
+
+const RETRYABLE_RENAME_CODES = new Set(['EPERM', 'EBUSY', 'EACCES'])
+const RENAME_RETRY_INTERVAL_MS = 100
+const RENAME_RETRY_TIMEOUT_MS = 3000
+
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * 백신 검사·탐색기 등이 파일을 잠깐 잡는 것에 대비해 rename 을 재시도한다 (설계 8장).
+ * EPERM/EBUSY/EACCES 면 100ms 간격으로 최대 3초 재시도하고, 그 밖의 오류거나 시간을 넘기면 마지막 오류를 던진다
+ */
+export async function renameWithRetry(
+  from: string,
+  to: string,
+  rename: (from: string, to: string) => void = renameSync
+): Promise<void> {
+  const deadline = Date.now() + RENAME_RETRY_TIMEOUT_MS
+  for (;;) {
+    try {
+      rename(from, to)
+      return
+    } catch (err) {
+      const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: unknown }).code : undefined
+      if (typeof code !== 'string' || !RETRYABLE_RENAME_CODES.has(code) || Date.now() >= deadline) throw err
+      await wait(RENAME_RETRY_INTERVAL_MS)
+    }
+  }
+}

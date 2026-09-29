@@ -114,15 +114,16 @@ if (!app.requestSingleInstanceLock()) {
         openPath: async (path) => {
           if (await shell.openPath(path)) throw new AppError('OPEN_FAILED', '폴더를 열지 못했습니다.')
         },
-        reload: () => {
+        reopen: () => {
           try {
             registerIpc(createHandlers(openDatabase(env.dbPath), clock, files, env), logError)
           } catch (err) {
             logError(err)
             dialog.showErrorBox('VOCAL CRM', '복원한 데이터를 열지 못했습니다. 앱을 다시 실행해 주세요.')
             app.exit(1)
-            return
           }
+        },
+        reloadWindow: () => {
           mainWindow?.webContents.reload()
         }
       }
