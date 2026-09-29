@@ -40,6 +40,7 @@ describe('가져오기 미리보기', () => {
     await user.click(screen.getByRole('button', { name: '파일 열기' }))
 
     expect(await screen.findByText('홍대점에서 보낸 파일 · 고객 3명')).toBeInTheDocument()
+    expect(screen.getByText('내보낸 날짜 2026-09-27 15:00')).toBeInTheDocument()
     expect(screen.getByText('회차 기록 12건 · 목표 7개 · 수강권 2건')).toBeInTheDocument()
     const apply = screen.getByRole('button', { name: '적용하기' })
     expect(apply).toBeDisabled()

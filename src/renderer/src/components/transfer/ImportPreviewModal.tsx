@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Alert, Badge, Button, Group, Modal, ScrollArea, Select, Stack, Table, Text } from '@mantine/core'
+import dayjs from 'dayjs'
 import type { HintCustomer } from '@shared/domain/merge'
 import { formatPhone } from '@shared/domain/phone'
 import type { ImportDecision, ImportPreview, ImportResult } from '@shared/transferTypes'
@@ -78,6 +79,9 @@ export function ImportPreviewModal({ preview, onClose }: { preview: ImportPrevie
       }
     >
       <Stack gap="sm">
+        <Text size="sm" c="dimmed">
+          내보낸 날짜 {dayjs(preview.exportedAt).format('YYYY-MM-DD HH:mm')}
+        </Text>
         <Group gap="xs">
           <Text size="sm" fw={600}>
             한 번에 지정:
