@@ -9,10 +9,10 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "install-electron && electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "dist:win": "npm run build && electron-builder --win --publish never",
-    "start": "electron-vite preview",
+    "start": "install-electron && electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",

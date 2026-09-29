@@ -11,7 +11,7 @@ Node 22.12 이상이 필요합니다.
 
 ```bash
 npm ci               # 설치 (.npmrc 가 의존성 설치 스크립트를 끈다 — Python·VS 빌드 도구 필요 없음)
-npm run dev          # 앱 실행 (데이터: VOCAL_CRM-dev 폴더)
+npm run dev          # 앱 실행 (데이터: VOCAL_CRM-dev 폴더). 처음에는 Electron 을 내려받는다
 npm test             # 단위·DB·화면 테스트 (Vitest)
 npm run typecheck
 npm run test:e2e     # 빌드 후 실제 앱을 띄워 확인 (Playwright)

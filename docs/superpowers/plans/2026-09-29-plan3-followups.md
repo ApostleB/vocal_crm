@@ -41,6 +41,7 @@
   - Windows ARM64 PC 에서 `npm ci` 가 실패했다. better-sqlite3 의 `binding.gyp` 때문에 npm 이 node-gyp 를 실행하는데, Python 이 없었다.
   - 이 프로젝트는 미리 빌드된 바이너리를 쓰고, Electron 은 처음 실행할 때 내려받는다. 그래서 설치 스크립트가 필요 없다.
   - 새로 복제한 저장소에서 설치·테스트·빌드·E2E·dist:win 이 모두 통과하는 것을 확인했다.
+  - 설치 스크립트를 끄면 Electron 바이너리도 받지 않아 `electron-vite` 가 `Electron uninstall` 오류를 낸다. 그래서 `dev`·`start` 스크립트 앞에 `install-electron` 을 붙였다(이미 받았으면 바로 넘어간다).
 
 ## 보강 후보
 
