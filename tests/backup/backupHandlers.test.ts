@@ -14,6 +14,13 @@ import { memoryFiles } from '../support/files'
 import { tempDir } from '../support/tempDir'
 import { sampleFile } from '../support/vcrm'
 
+// node:fs 는 내장 모듈이라 그대로는 spyOn 이 안 된다 (모듈 네임스페이스가 고정됨).
+// 실제 구현을 그대로 감싼 객체로 바꿔 두면, 개별 테스트에서 함수 하나만 spyOn 으로 바꿔치기할 수 있다
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return { ...actual }
+})
+
 function setup() {
   const dir = tempDir()
   const env: AppEnv & {
@@ -102,6 +109,24 @@ describe('app / backup channels', () => {
     expect(await h['backup.status']()).toMatchObject({ lastExternalBackupAt: NOW.toISOString() })
     files.nextSavePath = null
     expect(await h['backup.exportFile']()).toEqual({ saved: false })
+  })
+
+  it('내보내기 후 임시 파일 정리가 실패해도 저장 성공 결과를 덮지 않는다', async () => {
+    const { db, files, h } = setup()
+    createCustomer(db, customerInput(), NOW)
+    const fs = await import('node:fs')
+    const locked = (): never => {
+      throw new Error('EBUSY: 백신 검사 중입니다')
+    }
+    const unlink = vi.spyOn(fs, 'unlinkSync').mockImplementation(locked)
+    const rm = vi.spyOn(fs, 'rmSync').mockImplementation(locked)
+    try {
+      await expect(h['backup.exportFile']()).resolves.toEqual({ saved: true })
+      expect(files.store.has('/out/file')).toBe(true)
+    } finally {
+      unlink.mockRestore()
+      rm.mockRestore()
+    }
   })
 
   it('백업 파일 불러오기: 검사 후 복원하고 다시 연다, 잘못된 파일이면 아무것도 바꾸지 않는다', async () => {

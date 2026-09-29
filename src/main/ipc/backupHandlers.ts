@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { toDateString } from '@shared/domain/dates'
@@ -118,7 +118,11 @@ export function createBackupHandlers(
         await db.backup(tmp)
         await files.writeFile(path, readFileSync(tmp))
       } finally {
-        unlinkSync(tmp)
+        try {
+          rmSync(tmp, { force: true })
+        } catch {
+          /* 임시 폴더 정리 실패는 무시 - 백신 잠금 등으로 지우지 못해도 저장 성공은 그대로 알려야 한다 */
+        }
       }
       setSetting(db, 'last_external_backup_at', iso(clock()))
       return { saved: true }
