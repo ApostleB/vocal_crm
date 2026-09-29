@@ -2,6 +2,7 @@ import { Button, Center, Group, Loader, SimpleGrid, Stack, Text, Title } from '@
 import { IconPlus } from '@tabler/icons-react'
 import { formatKoreanDate } from '@shared/domain/dates'
 import { useHome } from '../api/hooks'
+import { BackupReminder } from '../components/home/BackupReminder'
 import { CustomerTable } from '../components/home/CustomerTable'
 import { StatsRow } from '../components/home/StatsRow'
 import { TodayPanel } from '../components/home/TodayPanel'
@@ -36,6 +37,7 @@ export function HomePage(): React.JSX.Element {
           </Button>
         </Group>
       </Group>
+      <BackupReminder today={data.today} />
       <StatsRow stats={data.stats} />
       <SimpleGrid cols={2} spacing="md">
         <TodayPanel today={data.todayReservations} missed={data.missedReservations} pinnedNotes={pinnedNotes} />
