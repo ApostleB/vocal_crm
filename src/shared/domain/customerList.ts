@@ -1,4 +1,5 @@
 import type { CustomerStatus, CustomerSummary } from '../types'
+import { PURPOSE_LABEL } from './labels'
 
 export type StatusFilter = 'active' | 'paused' | 'closed' | 'all'
 export type SortKey = 'name' | 'purpose' | 'goals' | 'lastLesson' | 'nextReservation' | 'lessonCount' | 'remaining'
@@ -31,7 +32,7 @@ export function sortCustomers(list: CustomerSummary[], key: SortKey, dir: SortDi
       case 'name':
         return c.name
       case 'purpose':
-        return c.purpose
+        return c.purpose ? PURPOSE_LABEL[c.purpose] : null
       case 'goals':
         return c.goalsTotal === 0 ? null : c.goalsDone / c.goalsTotal
       case 'lastLesson':

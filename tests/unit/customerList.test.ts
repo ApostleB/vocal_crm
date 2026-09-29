@@ -55,4 +55,23 @@ describe('sortCustomers', () => {
   it('남은 수강권 오름차순 (부족한 사람 먼저)', () => {
     expect(sortCustomers(list, 'remaining', 'asc').map((c) => c.name).slice(0, 2)).toEqual(['박서준', '김민지'])
   })
+
+  it('목적은 코드가 아니라 한글 라벨 기준으로 정렬한다', () => {
+    // 코드 알파벳 순: audition, exam, hobby, other, pro
+    // 라벨(한글) 순: 기타(other), 오디션(audition), 입시(exam), 직업(pro), 취미(hobby)
+    const purposeList = [
+      summary({ name: '입시고객', purpose: 'exam' }),
+      summary({ name: '취미고객', purpose: 'hobby' }),
+      summary({ name: '오디션고객', purpose: 'audition' }),
+      summary({ name: '기타고객', purpose: 'other' }),
+      summary({ name: '직업고객', purpose: 'pro' })
+    ]
+    expect(sortCustomers(purposeList, 'purpose', 'asc').map((c) => c.name)).toEqual([
+      '기타고객',
+      '오디션고객',
+      '입시고객',
+      '직업고객',
+      '취미고객'
+    ])
+  })
 })
