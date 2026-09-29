@@ -97,7 +97,8 @@ if (!app.requestSingleInstanceLock()) {
         message: '데이터 파일에 문제가 있습니다. 최근 백업으로 복원할까요?',
         detail: `최근 백업: ${latest.createdAt} (${BACKUP_KIND_LABEL[latest.kind]})\n지금 파일은 지우지 않고 옆에 따로 보관합니다.`
       }) === 0,
-    fatal: (title, message) => dialog.showErrorBox(title, message)
+    fatal: (title, message) => dialog.showErrorBox(title, message),
+    log: (err) => logError(err)
   }
 
   void app.whenReady().then(async () => {

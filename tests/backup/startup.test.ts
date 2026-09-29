@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { existsSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openDatabase } from '@main/db/connection'
 import { createBackup, listBackups } from '@main/backup/backups'
@@ -11,7 +11,8 @@ import { tempDir } from '../support/tempDir'
 function ui(answer: boolean) {
   return {
     askRestore: vi.fn<RecoveryUi['askRestore']>(() => answer),
-    fatal: vi.fn<RecoveryUi['fatal']>()
+    fatal: vi.fn<RecoveryUi['fatal']>(),
+    log: vi.fn<RecoveryUi['log']>()
   }
 }
 
@@ -71,6 +72,35 @@ describe('openWithRecovery', () => {
     expect(u.askRestore).not.toHaveBeenCalled()
     expect(u.fatal).toHaveBeenCalledWith('VOCAL CRM', expect.stringContaining('더 새 버전'))
     expect(existsSync(dbPath)).toBe(true)
+  })
+
+  it('파일 잠금 등 손상이 아닌 오류는 복원을 묻지 않고 안내만 하며, 파일을 건드리지 않는다', async () => {
+    const { dir, dbPath, backupDir } = await setupWithBackup()
+    // dbPath 자리에 폴더를 만들면 SQLITE_CANTOPEN 이 난다 (파일 잠금류와 같은 "그 밖의 오류")
+    rmSync(dbPath)
+    mkdirSync(dbPath)
+    const u = ui(true)
+    expect(openWithRecovery(dbPath, backupDir, u, NOW)).toBeNull()
+    expect(u.askRestore).not.toHaveBeenCalled()
+    expect(u.fatal).toHaveBeenCalledWith(
+      'VOCAL CRM',
+      '데이터 파일을 열지 못했습니다. PC를 다시 켠 뒤 실행해 주세요. 계속되면 데이터 폴더의 logs 폴더를 전달해 주세요.'
+    )
+    expect(u.log).toHaveBeenCalledTimes(1)
+    // 백업이 있어도 아무 파일도 옮기지 않는다
+    expect(readdirSync(dir).some((f) => f.includes('.broken-'))).toBe(false)
+    expect(existsSync(dbPath)).toBe(true)
+  })
+
+  it('SQLITE_NOTADB(손상된 파일)는 여전히 복원을 묻는다', async () => {
+    const { dbPath, backupDir } = await setupWithBackup()
+    writeFileSync(dbPath, 'this is not a database')
+    const u = ui(true)
+    const r = openWithRecovery(dbPath, backupDir, u, new Date(2026, 8, 28, 10, 0))
+    expect(u.askRestore).toHaveBeenCalled()
+    expect(r?.restoredFrom).toBe('vocal_crm_20260928_090000_auto.db')
+    expect(u.log).toHaveBeenCalledTimes(1)
+    r?.db.close()
   })
 })
 

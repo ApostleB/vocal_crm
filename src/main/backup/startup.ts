@@ -13,6 +13,25 @@ export interface RecoveryUi {
   askRestore(latest: BackupInfo): boolean
   /** 계속할 수 없는 오류를 알린다 (앱은 종료된다) */
   fatal(title: string, message: string): void
+  /** 원래 오류를 기록한다 (화면에는 보이지 않는다) */
+  log(err: unknown): void
+}
+
+/** better-sqlite3 오류의 code (있으면) */
+function sqliteCode(err: unknown): string | null {
+  if (err && typeof err === 'object' && 'code' in err && typeof err.code === 'string') return err.code
+  return null
+}
+
+/**
+ * 복원을 물어야 하는 손상 오류인지 (integrity_check 실패로 던진 DB_CORRUPT, 또는 SQLite 코드가
+ * SQLITE_CORRUPT 로 시작하거나 SQLITE_NOTADB). 그 밖의 오류(파일 잠금, 디스크 가득 참 등)는
+ * 아무 파일도 건드리지 않고 안내만 한다 - 멀쩡한 DB 를 잘못 복원으로 치우지 않기 위해서다
+ */
+function isCorruptionError(err: unknown): boolean {
+  if (err instanceof AppError) return err.code === 'DB_CORRUPT'
+  const code = sqliteCode(err)
+  return code !== null && (code.startsWith('SQLITE_CORRUPT') || code === 'SQLITE_NOTADB')
 }
 
 export interface OpenResult {
@@ -34,8 +53,16 @@ export function openWithRecovery(dbPath: string, backupDir: string, ui: Recovery
     db.close()
     throw new AppError('DB_CORRUPT', '데이터 파일이 손상되었습니다.')
   } catch (err) {
+    ui.log(err)
     if (err instanceof AppError && err.code === 'DB_TOO_NEW') {
       ui.fatal('VOCAL CRM', err.message)
+      return null
+    }
+    if (!isCorruptionError(err)) {
+      ui.fatal(
+        'VOCAL CRM',
+        '데이터 파일을 열지 못했습니다. PC를 다시 켠 뒤 실행해 주세요. 계속되면 데이터 폴더의 logs 폴더를 전달해 주세요.'
+      )
       return null
     }
     const latest = listBackups(backupDir)[0]
