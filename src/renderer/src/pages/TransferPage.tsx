@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Badge, Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import type { CustomerSummary } from '@shared/types'
+import type { ImportPreview } from '@shared/transferTypes'
 import { useApiMutation } from '../api/hooks'
 import { CustomerPickerModal } from '../components/transfer/CustomerPickerModal'
 import { ExportVcrmModal } from '../components/transfer/ExportVcrmModal'
+import { ImportPreviewModal } from '../components/transfer/ImportPreviewModal'
 import { notifySuccess } from '../lib/notify'
 
 function TransferCard(props: {
@@ -34,7 +36,18 @@ function TransferCard(props: {
 export function TransferPage(): React.JSX.Element {
   const [picker, setPicker] = useState<'vcrm' | 'excel' | null>(null)
   const [exportTarget, setExportTarget] = useState<CustomerSummary[] | null>(null)
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null)
   const exportExcel = useApiMutation('excel.exportCustomers')
+  const openVcrm = useApiMutation('transfer.openVcrm')
+
+  const openImport = async (): Promise<void> => {
+    try {
+      const preview = await openVcrm.mutateAsync([])
+      if (preview) setImportPreview(preview)
+    } catch {
+      return
+    }
+  }
 
   const saveExcel = async (customers: CustomerSummary[]): Promise<void> => {
     let result: { saved: boolean }
@@ -60,6 +73,17 @@ export function TransferPage(): React.JSX.Element {
           description="고른 고객의 정보·공통메모·목표·회차 기록·수강권을 .vcrm 파일로 저장합니다."
         >
           <Button onClick={() => setPicker('vcrm')}>고객 선택</Button>
+        </TransferCard>
+        <TransferCard
+          icon="📥"
+          tag="지점 이동용"
+          tagColor="blue"
+          title="고객 가져오기"
+          description="다른 지점에서 받은 .vcrm 파일을 열어 고객마다 신규 추가 / 합치기 / 건너뛰기를 고릅니다."
+        >
+          <Button onClick={() => void openImport()} loading={openVcrm.isPending}>
+            파일 열기
+          </Button>
         </TransferCard>
         <TransferCard
           icon="📊"
@@ -94,6 +118,7 @@ export function TransferPage(): React.JSX.Element {
         />
       )}
       {exportTarget && <ExportVcrmModal customers={exportTarget} onClose={() => setExportTarget(null)} />}
+      {importPreview && <ImportPreviewModal preview={importPreview} onClose={() => setImportPreview(null)} />}
     </Stack>
   )
 }
