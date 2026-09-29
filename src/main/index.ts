@@ -1,14 +1,21 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { openDatabase } from './db/connection'
 import { createHandlers } from './ipc/handlers'
 import { registerIpc } from './ipc/register'
+import { initLogging, logError } from './logger'
+import { isAllowedNavigation, isSafeExternalUrl } from './security'
 import { createElectronFileAccess } from './transfer/electronFiles'
 
-// 개발 중에는 실제 데이터와 섞이지 않게 별도 폴더를 쓴다
-if (!app.isPackaged) {
+// 데이터 폴더: E2E 테스트는 VOCAL_CRM_USER_DATA 로 임시 폴더를 쓰고, 개발 중에는 실제 데이터와 섞이지 않게 별도 폴더를 쓴다
+const userDataOverride = process.env['VOCAL_CRM_USER_DATA']
+if (userDataOverride) {
+  app.setPath('userData', userDataOverride)
+} else if (!app.isPackaged) {
   app.setPath('userData', join(app.getPath('appData'), 'VOCAL_CRM-dev'))
 }
+initLogging()
 
 let mainWindow: BrowserWindow | null = null
 
@@ -34,14 +41,21 @@ function createWindow(): void {
     mainWindow = null
   })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
+    if (isSafeExternalUrl(url)) void shell.openExternal(url)
     return { action: 'deny' }
   })
 
-  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  const devUrl = !app.isPackaged ? process.env['ELECTRON_RENDERER_URL'] : undefined
+  const indexHtml = join(__dirname, '../renderer/index.html')
+  const appUrl = devUrl ?? pathToFileURL(indexHtml).href
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigation(url, appUrl)) event.preventDefault()
+  })
+
+  if (devUrl) {
+    void mainWindow.loadURL(devUrl)
   } else {
-    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void mainWindow.loadFile(indexHtml)
   }
 }
 
@@ -56,7 +70,7 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(() => {
     const db = openDatabase(join(app.getPath('userData'), 'vocal_crm.db'))
-    registerIpc(createHandlers(db, () => new Date(), createElectronFileAccess(() => mainWindow)))
+    registerIpc(createHandlers(db, () => new Date(), createElectronFileAccess(() => mainWindow)), logError)
     createWindow()
   })
 

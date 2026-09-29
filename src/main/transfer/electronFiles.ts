@@ -2,10 +2,11 @@ import { app, dialog, type BrowserWindow } from 'electron'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { AppError } from '@shared/result'
+import { logError } from '../logger'
 import type { FileAccess } from './files'
 
 const fileError = (err: unknown): AppError => {
-  console.error(err)
+  logError(err)
   return new AppError('FILE_ERROR', '파일을 읽거나 쓰지 못했습니다. 위치와 권한(USB 연결 등)을 확인해 주세요.')
 }
 
