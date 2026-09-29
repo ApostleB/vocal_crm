@@ -7,7 +7,8 @@
     "src/preload/**/*",
     "src/shared/**/*",
     "tests/unit/**/*",
-    "tests/db/**/*"
+    "tests/db/**/*",
+    "tests/transfer/**/*"
   ],
   "compilerOptions": {
     "composite": true,
