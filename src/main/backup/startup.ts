@@ -62,7 +62,20 @@ function pickValidBackup(backupDir: string): BackupInfo | null {
 export function openWithRecovery(dbPath: string, backupDir: string, ui: RecoveryUi, now: Date): OpenResult | null {
   try {
     const db = openDatabase(dbPath)
-    if (checkIntegrity(db)) return { db, restoredFrom: null }
+    let ok: boolean
+    try {
+      ok = checkIntegrity(db)
+    } catch (integrityErr) {
+      // checkIntegrity 가 false 대신 예외(SQLITE_CORRUPT 등)를 던지는 경우도 db 를 열어 둔 채로 두면
+      // Windows 에서 그 파일을 .broken 으로 옮기지 못한다
+      try {
+        db.close()
+      } catch {
+        /* 닫기 실패는 무시 */
+      }
+      throw integrityErr
+    }
+    if (ok) return { db, restoredFrom: null }
     db.close()
     throw new AppError('DB_CORRUPT', '데이터 파일이 손상되었습니다.')
   } catch (err) {

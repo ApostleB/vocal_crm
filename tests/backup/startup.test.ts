@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import Database from 'better-sqlite3'
 import { openDatabase } from '@main/db/connection'
 import { createBackup, listBackups } from '@main/backup/backups'
 import { openWithRecovery, runDailyBackup, type RecoveryUi } from '@main/backup/startup'
@@ -42,6 +43,29 @@ describe('openWithRecovery', () => {
     expect(r?.restoredFrom).toBeNull()
     expect(u.askRestore).not.toHaveBeenCalled()
     r?.db.close()
+  })
+
+  it('무결성 검사가 예외를 던지면 연 db 를 닫고 복원 경로를 탄다 (Windows 에서 .broken 으로 옮길 수 있도록)', async () => {
+    const { dbPath, backupDir } = await setupWithBackup()
+    const connection = await import('@main/db/connection')
+    const closeSpy = vi.spyOn(Database.prototype, 'close')
+    const sqliteErr = Object.assign(new Error('database disk image is malformed'), { code: 'SQLITE_CORRUPT' })
+    const integrityCheck = vi.spyOn(connection, 'checkIntegrity').mockImplementationOnce(() => {
+      throw sqliteErr
+    })
+    const u = ui(true)
+    try {
+      const r = openWithRecovery(dbPath, backupDir, u, new Date(2026, 8, 28, 10, 0))
+      // setupWithBackup 은 백업을 하나만 만들어서 pickValidBackup 의 검사용 probe db 가 1번 닫힌다.
+      // 예외를 던진 원래 db 까지 닫혔다면 2번이어야 한다 (닫지 않으면 1번에 그친다)
+      expect(closeSpy).toHaveBeenCalledTimes(2)
+      expect(u.askRestore).toHaveBeenCalled()
+      expect(r?.restoredFrom).toBe('vocal_crm_20260928_090000_auto.db')
+      r?.db.close()
+    } finally {
+      integrityCheck.mockRestore()
+      closeSpy.mockRestore()
+    }
   })
 
   it('손상된 DB 는 최근 백업으로 복원할지 묻고, 복원하면 원래 파일은 옆에 남긴다', async () => {
