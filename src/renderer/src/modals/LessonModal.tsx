@@ -6,6 +6,7 @@ import type { CustomerDetail } from '@shared/types'
 import { previousHomework } from '@shared/domain/lessons'
 import { useApiMutation, useCustomerDetail } from '../api/hooks'
 import { confirmDiscard } from '../lib/confirm'
+import { useLeaveGuard } from '../lib/useLeaveGuard'
 import { notifySuccess } from '../lib/notify'
 import { todayString } from '../lib/today'
 
@@ -24,6 +25,7 @@ interface Props extends LessonTarget {
 export function LessonModal({ customerId, lessonId, reservationId, date, onClose, onBookNext }: Props): React.JSX.Element {
   const detail = useCustomerDetail(customerId)
   const [dirty, setDirty] = useState(false)
+  useLeaveGuard(dirty)
 
   const requestClose = async (): Promise<void> => {
     if (!dirty || (await confirmDiscard('작성 중인 메모가 있습니다. 닫을까요?'))) onClose()

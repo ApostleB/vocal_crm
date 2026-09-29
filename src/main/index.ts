@@ -44,6 +44,20 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+  // 화면에 저장하지 않은 입력이 있어 닫기가 멈추면(useLeaveGuard) 여기서 확인한다. preventDefault 는 "그래도 닫기"
+  mainWindow.webContents.on('will-prevent-unload', (event) => {
+    if (!mainWindow) return
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question',
+      buttons: ['닫기', '계속 작성'],
+      defaultId: 1,
+      cancelId: 1,
+      title: 'VOCAL CRM',
+      message: '저장하지 않은 입력이 있습니다. 닫을까요?',
+      detail: '닫으면 작성 중인 내용은 저장되지 않습니다.'
+    })
+    if (choice === 0) event.preventDefault()
+  })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isSafeExternalUrl(url)) void shell.openExternal(url)
     return { action: 'deny' }

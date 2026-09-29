@@ -1,4 +1,4 @@
-import { Center, Loader, MantineProvider } from '@mantine/core'
+import { Button, Center, Loader, MantineProvider, Stack, Text } from '@mantine/core'
 import { DatesProvider } from '@mantine/dates'
 import { ModalsProvider } from '@mantine/modals'
 import { Notifications } from '@mantine/notifications'
@@ -24,6 +24,18 @@ const queryClient = new QueryClient({
 
 function Root(): React.JSX.Element {
   const settings = useSettings()
+  if (settings.isError) {
+    return (
+      <Center h="100vh">
+        <Stack align="center" gap="sm">
+          <Text>데이터를 불러오지 못했습니다.</Text>
+          <Button variant="light" onClick={() => void settings.refetch()} loading={settings.isFetching}>
+            다시 시도
+          </Button>
+        </Stack>
+      </Center>
+    )
+  }
   if (!settings.data) {
     return (
       <Center h="100vh">

@@ -7,6 +7,7 @@ import { PURPOSE_LABEL } from '@shared/domain/labels'
 import { formatPhone } from '@shared/domain/phone'
 import { useApiMutation } from '../api/hooks'
 import { confirm, confirmDiscard } from '../lib/confirm'
+import { useLeaveGuard } from '../lib/useLeaveGuard'
 import { notifySuccess } from '../lib/notify'
 import { todayString } from '../lib/today'
 
@@ -37,6 +38,7 @@ export function CustomerFormModal({ customer, onClose }: CustomerFormTarget & { 
   const [nameError, setNameError] = useState<string | null>(null)
   const set = (patch: Partial<CustomerInput>): void => setValues((v) => ({ ...v, ...patch }))
   const dirty = JSON.stringify(values) !== JSON.stringify(initial)
+  useLeaveGuard(dirty)
   const create = useApiMutation('customers.create')
   const update = useApiMutation('customers.update')
   const remove = useApiMutation('customers.remove')
