@@ -24,7 +24,9 @@ const queryClient = new QueryClient({
 
 function Root(): React.JSX.Element {
   const settings = useSettings()
-  if (settings.isError) {
+  // 저장할 때마다 모든 조회를 다시 불러온다 (useApiMutation). 이미 화면이 떠 있는데 그 재조회 한 번이
+  // 실패했다고 전체 화면을 오류로 바꾸면 안 된다 - 데이터가 있으면 그 화면을 그대로 보여준다
+  if (settings.isError && !settings.data) {
     return (
       <Center h="100vh">
         <Stack align="center" gap="sm">

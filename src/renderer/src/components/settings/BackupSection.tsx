@@ -75,7 +75,8 @@ export function BackupSection(): React.JSX.Element {
     }
   }
 
-  const busy = restore.isPending || importFile.isPending
+  // 백업·내보내기 중에 복원하면 db.close() 가 진행 중인 백업을 끊으므로 함께 잠근다
+  const busy = restore.isPending || importFile.isPending || create.isPending || exportFile.isPending
   return (
     <Paper withBorder p="lg">
       <Stack>

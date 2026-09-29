@@ -80,4 +80,32 @@ describe('설정·백업', () => {
     expect(await screen.findByText('아직 백업이 없습니다.')).toBeInTheDocument()
     expect(screen.getByText('없음')).toBeInTheDocument()
   })
+
+  it('백업을 만드는 동안에는 다른 백업 동작 버튼이 잠긴다 (진행 중인 백업을 끊지 않도록)', async () => {
+    const user = userEvent.setup()
+    let resolveCreate: () => void = () => {}
+    const invoke = vi.fn(async (channel: string) => {
+      if (channel === 'backup.create') {
+        return new Promise((resolve) => {
+          resolveCreate = () => resolve({ ok: true, data: backups[0] })
+        })
+      }
+      const data: Record<string, unknown> = {
+        'settings.get': { branchName: '강남점', lessonMinutes: 60 },
+        'backup.status': { lastExternalBackupAt: '2026-08-25T01:00:00.000Z', backupCount: 2 },
+        'backup.list': backups,
+        'app.info': { version: '0.1.0', dataDir: 'C:\\Users\\t\\AppData\\Roaming\\VOCAL_CRM' }
+      }
+      return { ok: true, data: data[channel] }
+    })
+    window.api = { invoke } as unknown as Window['api']
+
+    renderWithProviders(<SettingsPage />)
+    await user.click(await screen.findByRole('button', { name: '지금 백업' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '백업 파일 내보내기' })).toBeDisabled())
+    expect(screen.getByRole('button', { name: '2026-09-27 09:00:00 백업으로 복원' })).toBeDisabled()
+
+    resolveCreate()
+    await waitFor(() => expect(screen.getByRole('button', { name: '백업 파일 내보내기' })).toBeEnabled())
+  })
 })
